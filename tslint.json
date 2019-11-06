@@ -1,0 +1,18 @@
+{
+  "extends": ["tslint-config-egg"],
+  "rules": {
+    "quotemark": [false],
+    "semicolon":[true, "never", "ignore-interfaces"], //分号的使用规则
+    "linebreak-style": [0, "error", "windows"],
+    "only-arrow-functions": [false, "allow-declarations", "allow-named-functions"],
+    "trailing-comma": [true, { // 对尾随逗号的校验
+      "multiline": {
+        "objects": "ignore",
+        "arrays": "never",
+        "functions": "never",
+        "typeLiterals": "ignore"
+      },
+      "esSpecCompliant": false // 是否允许尾随逗号出现在剩余变量中
+    }]
+  }
+}
