@@ -17,8 +17,13 @@ export default class IconsController extends Controller {
         ctx.status = 403
         throw new Error('仅支持svg文件')
       }
-      ctx.service.icons.create(readStream)
+      const res = await ctx.service.icons.create(readStream)
+      if (res.affectedRows > 0) {
+        ctx.status = 200
+        return true
+      }
     } catch (e) {
+      ctx.status = 500
       throw e
     }
     // const chunks: Buffer[] = []
