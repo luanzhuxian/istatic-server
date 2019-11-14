@@ -17,7 +17,6 @@ CREATE TABLE user (
 CREATE TABLE project (
 	id VARCHAR(32) PRIMARY KEY NOT NULL,
 	project_name VARCHAR(100), # 项目名称
-	name VARCHAR(100), # 真实姓名
 	create_time datetime NOT NULL DEFAULT NOW(),
 	update_time datetime NOT NULL DEFAULT NOW()
 );

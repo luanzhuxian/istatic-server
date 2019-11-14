@@ -3,8 +3,14 @@ import { Controller } from 'egg'
 // import path = require('path');
 export default class IconsController extends Controller {
   public async index(ctx) {
-    console.log('index')
-    ctx.body = 'index'
+    try {
+      const list = ctx.service.icons.getList()
+      ctx.status = 200
+      return list
+    } catch (e) {
+      ctx.status = 500
+      throw e
+    }
   }
 
   public async create(ctx) {
@@ -17,11 +23,9 @@ export default class IconsController extends Controller {
         ctx.status = 403
         throw new Error('仅支持svg文件')
       }
-      const res = await ctx.service.icons.create(readStream)
-      if (res.affectedRows > 0) {
-        ctx.status = 200
-        return true
-      }
+      await ctx.service.icons.create(readStream)
+      ctx.status = 200
+      return true
     } catch (e) {
       ctx.status = 500
       throw e

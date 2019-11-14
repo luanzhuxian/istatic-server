@@ -3,9 +3,13 @@
 
 import 'egg';
 import ExportIcons from '../../../app/service/icons';
+import ExportLink from '../../../app/service/link';
+import ExportProject from '../../../app/service/project';
 
 declare module 'egg' {
   interface IService {
     icons: ExportIcons;
+    link: ExportLink;
+    project: ExportProject;
   }
 }
