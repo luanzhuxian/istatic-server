@@ -13,8 +13,23 @@ export default class Porject extends Controller {
   }
 
   public async create (ctx) {
+    const rule = {
+      name: {
+        type: 'string',
+        max: 100,
+        require: true
+      }
+    }
+    const body: ProjectData = ctx.request.body
+
     try {
-      const body: ProjectData = ctx.request.body
+      ctx.validate(rule, body)
+    } catch (e) {
+      ctx.status = 403
+      throw e
+    }
+
+    try {
       const res = await ctx.service.project.create(body)
       ctx.status = 200
       return res

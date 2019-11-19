@@ -3,6 +3,7 @@ module.exports = () => {
     try {
       await next()
       if (ctx.status === 404 && !ctx.body) {
+        ctx.status = 404
         ctx.body = {
           message: 'not found',
           status: 404,

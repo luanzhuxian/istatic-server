@@ -1,5 +1,5 @@
 {
-  "name": "plicon",
+  "name": "plicon-server",
   "version": "1.0.0",
   "description": "",
   "private": true,
@@ -28,6 +28,7 @@
     "egg": "^2.6.1",
     "egg-mysql": "^3.0.0",
     "egg-scripts": "^2.6.0",
+    "egg-validate": "^2.0.2",
     "moment": "^2.24.0",
     "pinyin": "^2.9.0",
     "uuid": "^3.3.3"

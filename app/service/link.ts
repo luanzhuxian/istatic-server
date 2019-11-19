@@ -34,8 +34,9 @@ export default class Icons extends Service {
       const { data } = await getSTS()
       const { accessKeySecret, accessKeyId, securityToken } = data.result.credentials
       const filename = uuidv1()
-      fs.writeFileSync(path.join(__dirname, `../../temp/${filename}.js`), svgScript, { encoding: 'utf8' })
-      const stream = fs.createReadStream(path.join(__dirname, `../../temp/${filename}.js`))
+      const filePath = path.join(__dirname, `../../temp/${filename}.js`)
+      fs.writeFileSync(filePath, svgScript, { encoding: 'utf8' })
+      const stream = fs.createReadStream(filePath)
       const client = new Oss({
         region: 'oss-cn-hangzhou',
         // 云账号AccessKey有所有API访问权限，建议遵循阿里云安全最佳实践，部署在服务端使用RAM子账号或STS，部署在客户端使用STS。
@@ -45,6 +46,7 @@ export default class Icons extends Service {
         bucket: 'penglai-weimall'
       })
       const res = await client.putStream(`pl-icons/${filename}.js`, stream)
+      fs.unlinkSync(filePath)
       return {
         key: res.name,
         url: `https://mallcdn.youpenglai.com/${res.name}`

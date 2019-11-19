@@ -14,15 +14,27 @@ export default class IconsController extends Controller {
   }
 
   public async create(ctx) {
+    let readStream
+    const rule = {
+      project_id: {
+        type: 'string',
+        require: true,
+        trim: true
+      },
+      mimeType: 'isSvg'
+    }
+
     try {
-      const readStream = await ctx.getFileStream()
-      const {
-        mimeType
-      } = readStream
-      if (mimeType !== 'image/svg+xml') {
-        ctx.status = 403
-        throw new Error('仅支持svg文件')
-      }
+      readStream = await ctx.getFileStream()
+      const { mimeType } = readStream
+      readStream.fields.mimeType = mimeType
+      ctx.validate(rule, readStream.fields)
+    } catch (e) {
+      ctx.status = 403
+      throw e
+    }
+
+    try {
       await ctx.service.icons.create(readStream)
       ctx.status = 200
       return true
@@ -30,20 +42,6 @@ export default class IconsController extends Controller {
       ctx.status = 500
       throw e
     }
-    // const chunks: Buffer[] = []
-    // let chunksLength = 0
-    // readStream.on('data', chunk => {
-    //   chunks.push(chunk)
-    //   console.log(chunk)
-    //   chunksLength += chunk.length
-    // })
-    // readStream.on('end', () => {
-    //   console.log('end')
-    //   const buf: Buffer = Buffer.concat(chunks, chunksLength)
-    //   buf.toString('utf8')
-    //   ctx.service.icons.create()
-    //   ctx.status = 200
-    // })
   }
 
   public async update(ctx) {

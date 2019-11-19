@@ -8,9 +8,11 @@ export default class Icons extends Service {
     return list
   }
   public async create (svg) {
+    const fields: IconsFields = svg.fields
     const mysql = this.app.mysql
     const buffer: Buffer = await readStreamPromise(svg)
     const filename: string = svg.filename.replace('.svg', '')
+    // 如果文件名是中文的，转成拼音
     let namePingYin = pinyin(filename, {
       heteronym: false,
       segment: false,
@@ -18,7 +20,7 @@ export default class Icons extends Service {
     }).toString().split(',').join('')
     try {
       const checkSql = `SELECT icon_name from icons WHERE icon_name LIKE ?`
-      const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?)'
+      const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc, project_id, namespace) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?, ?, ?)'
       const has = await mysql.query(checkSql, [ 'pl-' + namePingYin + '%' ])
       // 如果发现重名的图标，自动拼接序号
       if (has.length) {
@@ -28,7 +30,9 @@ export default class Icons extends Service {
       const data = [
         buffer.toString('utf8'),
         namePingYin,
-        filename
+        filename,
+        fields.project_id,
+        fields.namespace || null
       ]
       const res = await mysql.query(insertSql, data)
       return res
