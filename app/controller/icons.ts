@@ -5,7 +5,7 @@ export default class IconsController extends Controller {
   // 获取图标
   public async index(ctx) {
     try {
-      const list = ctx.service.icons.getList(ctx.query.projectId)
+      const list = ctx.service.icons.getList(ctx.query)
       ctx.status = 200
       return list
     } catch (e) {
@@ -46,9 +46,14 @@ export default class IconsController extends Controller {
   }
   // 修改图标
   public async update(ctx) {
-    console.log(ctx.params.id)
-    console.log('update')
-    ctx.body = 'update'
+    try {
+      const res = await ctx.service.icons.update(ctx.params.id, ctx.request.body)
+      ctx.status = 200
+      return res[0]
+    } catch (e) {
+      ctx.status = 500
+      throw e
+    }
   }
   // 删除图标
   public async destroy (ctx) {

@@ -2,9 +2,10 @@ import { Service } from 'egg'
 import pinyin = require('pinyin')
 import { readStreamPromise } from '../../lib/utils'
 export default class Icons extends Service {
-  public async getList (projectId) {
-    const SQL = `SELECT * FROM icons WHERE project_id = ? AND visible = 1`
-    return this.app.mysql.query(SQL, projectId)
+  public async getList (query) {
+    const { visible, projectId } = query
+    const SQL = `SELECT * FROM icons WHERE project_id = ? AND visible = ?`
+    return this.app.mysql.query(SQL, [ projectId, visible ])
   }
   public async create (svg) {
     const fields: IconsFields = svg.fields
@@ -39,8 +40,25 @@ export default class Icons extends Service {
       throw e
     }
   }
-  destroy (id) {
-    const sql = `UPDATE icons SET visible = 0 WHERE id = ?`
+  public destroy (id) {
+    const sql = `DELETE FROM icons WHERE id = ?`
     return this.app.mysql.query(sql, [ id ])
+  }
+  public async update (id, body) {
+    const mysql = this.app.mysql
+    const querySql = `SELECT * FROM icons WHERE id = ?`
+    const updateSql = `UPDATE icons SET icon_name = ?, icon_desc = ?, content = ?, project_id = ?, namespace = ?, visible = ? WHERE id = ?`
+    let icon = await mysql.query(querySql, [ id ])
+    icon = icon[0]
+    const {
+      visible = icon.visible,
+      name = icon.icon_name,
+      desc = icon.icon_desc,
+      projectId = icon.project_id,
+      content = icon.content,
+      namespace = icon.namespace
+    } = body
+    await mysql.query(updateSql, [ name, desc, content, projectId, namespace, visible, id ])
+    return mysql.query(querySql, [ id ])
   }
 }
