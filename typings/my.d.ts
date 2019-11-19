@@ -7,7 +7,7 @@ interface Axios {
   post: any
 }
 interface IconsFields {
-  project_id: string,
+  projectId: string,
   namespace: string,
   id?: string,
   content: string,

@@ -2,6 +2,7 @@ import { Service } from 'egg'
 import pinyin = require('pinyin')
 import { readStreamPromise } from '../../lib/utils'
 export default class Icons extends Service {
+  timer: any = 0
   public async getList (query) {
     const { visible, projectId } = query
     const SQL = `SELECT * FROM icons WHERE project_id = ? AND visible = ?`
@@ -27,22 +28,25 @@ export default class Icons extends Service {
         namePingYin += `-${has.length}`
       }
       namePingYin = 'pl-' + namePingYin
-      const data = [
+      const res = await mysql.query(insertSql, [
         buffer.toString('utf8'),
         namePingYin,
         filename,
-        fields.project_id,
+        fields.projectId,
         fields.namespace || null
-      ]
-      const res = await mysql.query(insertSql, data)
+      ])
+      await this.updateProject(fields.projectId)
       return res
     } catch (e) {
       throw e
     }
   }
-  public destroy (id) {
+  public async destroy (id) {
     const sql = `DELETE FROM icons WHERE id = ?`
-    return this.app.mysql.query(sql, [ id ])
+    const current = this.app.mysql.query(`SELECT project_id FROM icons WHERE id = ?`, [ id ])
+    const res = await this.app.mysql.query(sql, [ id ])
+    await this.updateProject(current[0].project_id)
+    return res
   }
   public async update (id, body) {
     const mysql = this.app.mysql
@@ -59,6 +63,16 @@ export default class Icons extends Service {
       namespace = icon.namespace
     } = body
     await mysql.query(updateSql, [ name, desc, content, projectId, namespace, visible, id ])
-    return mysql.query(querySql, [ id ])
+    const res = await mysql.query(querySql, [ id ])
+    await this.updateProject(projectId)
+    return res
+  }
+  // 更新项目修改时间
+  private async updateProject (projectId) {
+    clearTimeout(this.timer)
+    this.timer = setTimeout(() => {
+      const SQL = 'UPDATE project set update_time = NOW() WHERE id = ?'
+      this.app.mysql.query(SQL, [ projectId ])
+    }, 100)
   }
 }
