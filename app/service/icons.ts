@@ -2,10 +2,9 @@ import { Service } from 'egg'
 import pinyin = require('pinyin')
 import { readStreamPromise } from '../../lib/utils'
 export default class Icons extends Service {
-  public async getList () {
-    const SQL = `SELECT * FROM icons`
-    const list: object[] = await this.app.mysql.query(SQL)
-    return list
+  public async getList (projectId) {
+    const SQL = `SELECT * FROM icons WHERE project_id = ? AND visible = 1`
+    return this.app.mysql.query(SQL, projectId)
   }
   public async create (svg) {
     const fields: IconsFields = svg.fields
@@ -39,5 +38,9 @@ export default class Icons extends Service {
     } catch (e) {
       throw e
     }
+  }
+  destroy (id) {
+    const sql = `UPDATE icons SET visible = 0 WHERE id = ?`
+    return this.app.mysql.query(sql, [ id ])
   }
 }

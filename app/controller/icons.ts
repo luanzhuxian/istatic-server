@@ -2,9 +2,10 @@ import { Controller } from 'egg'
 // import fs = require('fs')
 // import path = require('path');
 export default class IconsController extends Controller {
+  // 获取图标
   public async index(ctx) {
     try {
-      const list = ctx.service.icons.getList()
+      const list = ctx.service.icons.getList(ctx.query.projectId)
       ctx.status = 200
       return list
     } catch (e) {
@@ -12,7 +13,7 @@ export default class IconsController extends Controller {
       throw e
     }
   }
-
+  // 上传图标
   public async create(ctx) {
     let readStream
     const rule = {
@@ -43,10 +44,21 @@ export default class IconsController extends Controller {
       throw e
     }
   }
-
+  // 修改图标
   public async update(ctx) {
     console.log(ctx.params.id)
     console.log('update')
     ctx.body = 'update'
+  }
+  // 删除图标
+  public async destroy (ctx) {
+    try {
+      await ctx.service.icons.destroy(ctx.params.id)
+      ctx.status = 200
+      return true
+    } catch (e) {
+      ctx.status = 500
+      throw e
+    }
   }
 }
