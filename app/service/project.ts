@@ -1,5 +1,6 @@
 import { Service } from 'egg'
 import moment = require("moment")
+import uuidv1 = require('uuid/v1')
 export default class Icons extends Service {
   public async getList () {
     const SQL = `SELECT * FROM project`
@@ -9,9 +10,15 @@ export default class Icons extends Service {
   public async create (data: ProjectData) {
     try {
       const mysql = this.app.mysql
-      const SQL = `INSERT INTO project (id, project_name) VALUES (REPLACE(UUID(), "-", ""),?)`
-      const res = await mysql.query(SQL, [ data.name ])
-      return res
+      const id = uuidv1().replace(/\-/g, '')
+      const SQL = `INSERT INTO project (id, project_name) VALUES (?,?)`
+      const selectSql = `SELECT * FROM project WHERE id='${id}'`
+      const res = await mysql.query(SQL, [ id, data.name ])
+      if (res.affectedRows >= 1) {
+        const current = await mysql.query(selectSql)
+        return current[0]
+      }
+      return null
     } catch (e) {
       throw e
     }
@@ -21,13 +28,18 @@ export default class Icons extends Service {
     try {
       const mysql = this.app.mysql
       const SQL = `UPDATE project SET project_name=?, update_time=? WHERE id=?`
+      const selectSql = `SELECT * FROM project WHERE id='${data.id}'`
       const updateTime = moment().format('YYYY-MM-DD HH:mm:ss')
       const res = await mysql.query(SQL, [
         data.name,
         updateTime,
         data.id
       ])
-      return res
+      if (res.affectedRows >= 1) {
+        const current = await mysql.query(selectSql)
+        return current[0]
+      }
+      return null
     } catch (e) {
       throw e
     }
