@@ -5,9 +5,9 @@ export default class IconsController extends Controller {
   // 获取图标
   public async index(ctx) {
     try {
-      const list = ctx.service.icons.getList(ctx.query)
+      const res = await ctx.service.icons.getList(ctx.query)
       ctx.status = 200
-      return list
+      return res
     } catch (e) {
       ctx.status = 500
       throw e

@@ -2,13 +2,20 @@ import { Service } from 'egg'
 import pinyin = require('pinyin')
 import { readStreamPromise } from '../../lib/utils'
 import cheerio = require('cheerio')
+import crypto = require('crypto')
 
 export default class Icons extends Service {
   timer: any = 0
   public async getList (query) {
     const { visible, projectId } = query
     const SQL = `SELECT * FROM icons WHERE project_id = ? AND visible = ?`
-    return this.app.mysql.query(SQL, [ projectId, visible ])
+    const oldHash = await this.app.redis.get('svg')
+    const newHash = await this.getHash()
+    const list = await this.app.mysql.query(SQL, [ projectId, visible ])
+    return {
+      changed: list.length && visible === 1 ? oldHash !== newHash : false,
+      list
+    }
   }
   public async create (svg) {
     const fields: IconsFields = svg.fields
@@ -48,7 +55,6 @@ export default class Icons extends Service {
         .attr('id', namePingYin)
       content = $('body').html()
       // 重新上传的处理
-      console.log(fields.id)
       if (fields.id) {
         return this.update(fields.id, {
           content
@@ -102,4 +108,35 @@ export default class Icons extends Service {
       this.app.mysql.query(SQL, [ projectId ])
     }, 100)
   }
+  // 获取当前所有图标的hash值
+  private async getHash () {
+    const hash = crypto.createHash('sha256')
+    const svg = await this.app.mysql.query('SELECT id FROM icons WHERE visible = 1')
+    const svgStr = svg.map(item => item.id).join('')
+    return new Promise(resolve => {
+      hash.on('readable', () => {
+        const data = hash.read()
+        if (data) {
+          resolve(data.toString('hex'))
+        }
+      })
+      hash.write(svgStr)
+      hash.end()
+    })
+  }
+  // 更新hash
+  // private async updateSvgHash () {
+  //   const hash = crypto.createHash('sha256')
+  //   const svg = await this.app.mysql.query('SELECT content FROM icons WHERE visible = 1')
+  //   hash.on('readable', () => {
+  //     const data = hash.read()
+  //     if (data) {
+  //       const hashCode = data.toString('hex')
+  //       this.app.redis.set('svg', hashCode)
+  //     }
+  //   })
+  //   const svgStr = svg.map(item => item.content).join('')
+  //   hash.write(svgStr)
+  //   hash.end()
+  // }
 }

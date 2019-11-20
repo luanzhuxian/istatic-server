@@ -27,6 +27,7 @@
     "cheerio": "^1.0.0-rc.3",
     "egg": "^2.6.1",
     "egg-mysql": "^3.0.0",
+    "egg-redis": "^2.4.0",
     "egg-scripts": "^2.6.0",
     "egg-validate": "^2.0.2",
     "moment": "^2.24.0",
