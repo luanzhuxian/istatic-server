@@ -1,5 +1,3 @@
-CREATE DATABASE pl_icon;
-
 use pl_icon;
 
 
