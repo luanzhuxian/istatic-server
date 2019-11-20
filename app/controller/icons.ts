@@ -17,7 +17,7 @@ export default class IconsController extends Controller {
   public async create(ctx) {
     let readStream
     const rule = {
-      project_id: {
+      projectId: {
         type: 'string',
         require: true,
         trim: true

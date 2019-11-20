@@ -13,12 +13,23 @@ export default class Icons extends Service {
     const mysql = this.app.mysql
     const buffer: Buffer = await readStreamPromise(svg)
     const filename: string = svg.filename.replace('.svg', '')
+
     // 如果文件名是中文的，转成拼音
     let namePingYin = pinyin(filename, {
       heteronym: false,
       segment: false,
       style: pinyin.STYLE_NORMAL
-    }).toString().split(',').join('')
+    })
+      .flat(2)
+      .join('')
+
+    // 重新上传的处理
+    if (fields.id) {
+      return this.update(fields.id, {
+        content: buffer.toString('utf8')
+      })
+    }
+
     try {
       const checkSql = `SELECT icon_name from icons WHERE icon_name LIKE ?`
       const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc, project_id, namespace) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?, ?, ?)'
