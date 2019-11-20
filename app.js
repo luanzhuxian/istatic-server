@@ -30,8 +30,6 @@ class AppBootHook {
                 return '仅支持svg文件'
             }
         })
-        let res = await this.app.mysql.query('show tables;')
-        console.log(res);
         // if (!res.some(item => item.Tables_in_pl_icon === 'icons')) {
         //     // 数据库还未初始化
         //     let sql = fs.readFileSync(path.join(__dirname, './database/init.sql'), { encoding: 'utf8' })
