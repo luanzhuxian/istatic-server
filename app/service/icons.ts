@@ -9,11 +9,11 @@ export default class Icons extends Service {
   public async getList (query) {
     const { visible, projectId } = query
     const SQL = `SELECT * FROM icons WHERE project_id = ? AND visible = ?`
-    const oldHash = await this.app.redis.get('svg')
-    const newHash = await this.getHash()
+    const oldHash = await this.app.redis.hget('pl-icon-hash', `svg-pro-id-${projectId}`)
     const list = await this.app.mysql.query(SQL, [ projectId, visible ])
+    const newHash = await this.getHash(list)
     return {
-      changed: list.length && visible === 1 ? oldHash !== newHash : false,
+      changed: list.length && visible === '1' ? oldHash !== newHash : false,
       list
     }
   }
@@ -109,10 +109,9 @@ export default class Icons extends Service {
     }, 100)
   }
   // 获取当前所有图标的hash值
-  private async getHash () {
+  private async getHash (list) {
     const hash = crypto.createHash('sha256')
-    const svg = await this.app.mysql.query('SELECT id FROM icons WHERE visible = 1')
-    const svgStr = svg.map(item => item.id).join('')
+    const svgStr = list.map(item => item.id).join('')
     return new Promise(resolve => {
       hash.on('readable', () => {
         const data = hash.read()

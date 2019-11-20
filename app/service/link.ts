@@ -8,17 +8,21 @@ import uuidv1 = require('uuid/v1')
 import crypto = require('crypto')
 
 export default class Icons extends Service {
-  public async index () {
-    const sql = "SELECT id, js as link, DATE_FORMAT(create_time, '%Y-%m-%d %T') as create_time FROM link ORDER BY create_time DESC LIMIT 1 OFFSET 0"
-    const res = await this.app.mysql.query(sql)
-    return res[0]
+  public async index (projectId) {
+    const sql = "SELECT id, js as link, DATE_FORMAT(create_time, '%Y-%m-%d %T') as create_time FROM link  WHERE project_id = ? ORDER BY create_time DESC LIMIT 1 OFFSET 0"
+    const res = await this.app.mysql.query(sql, [ projectId ])
+    return res[0] || {
+      id: '',
+      link: '',
+      create_time: ''
+    }
   }
   /**
    * 生成在线链接
    */
-  public async create () {
-    const SQL = `SELECT content, id FROM icons WHERE visible = 1`
-    const svgs = await this.app.mysql.query(SQL)
+  public async create (projectId) {
+    const SQL = `SELECT content, id FROM icons WHERE visible = 1 AND project_id = ?`
+    const svgs = await this.app.mysql.query(SQL, [ projectId ])
     // 将图标id拼接在一起
     const svgStr = svgs.map(item => item.id).join('')
     // 将拼接在一起的图标修改为精灵
@@ -44,7 +48,7 @@ export default class Icons extends Service {
       fs.unlinkSync(filePath)
       const url = `https://mallcdn.youpenglai.com/${res.name}`
       // 存储url
-      await this.saveLink(url, svgStr)
+      await this.saveLink(url, svgStr, projectId)
       return {
         key: res.name,
         url
@@ -57,10 +61,10 @@ export default class Icons extends Service {
   /**
    * 存储链接，并为当前spirit生成hash值，通过hash值可判断图标是否发生过修改
    * @param js {string} js链接地址
+   * @param projectId {string} 项目id
    * @param svgStr {string} svg 精灵
    */
-  public saveLink (js, svgStr) {
-    console.log(svgStr, 63)
+  public saveLink (js, svgStr, projectId) {
     const hash = crypto.createHash('sha256')
     return new Promise((resolve, reject) => {
       hash.on('readable', async () => {
@@ -68,11 +72,11 @@ export default class Icons extends Service {
         const data = hash.read()
         if (data) {
           const id = uuidv1().replace(/\-/g, '')
-          const sql = 'INSERT INTO link (id, js, hash) VALUES (?,?,?)'
+          const sql = 'INSERT INTO link (id, js, hash, project_id) VALUES (?,?,?,?)'
           const hashCode = data.toString('hex')
           try {
-            await this.app.redis.set('svg', hashCode)
-            const res = await this.app.mysql.query(sql, [ id, js, hashCode ])
+            await this.app.redis.hset('pl-icon-hash', `svg-pro-id-${projectId}`, hashCode)
+            const res = await this.app.mysql.query(sql, [ id, js, hashCode, projectId ])
             resolve(res)
           } catch (e) {
             reject(e)

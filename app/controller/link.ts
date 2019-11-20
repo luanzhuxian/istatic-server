@@ -1,9 +1,17 @@
 import { Controller } from 'egg'
 
+const rule = {
+  projectId: {
+    type: 'string',
+    require: true,
+    max: 32
+  }
+}
 export default class Porject extends Controller {
   public async index (ctx) {
     try {
-      const res = await ctx.service.link.index()
+      await ctx.validate(rule, ctx.query)
+      const res = await ctx.service.link.index(ctx.query.projectId)
       ctx.status = 200
       return res
     } catch (e) {
@@ -14,7 +22,8 @@ export default class Porject extends Controller {
 
   public async create (ctx) {
     try {
-      const res = await ctx.service.link.create()
+      await ctx.validate(rule, ctx.query)
+      const res = await ctx.service.link.create(ctx.query.projectId)
       ctx.status = 200
       return res
     } catch (e) {
