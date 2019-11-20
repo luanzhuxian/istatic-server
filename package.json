@@ -19,7 +19,7 @@
     "ci": "npm run lint && npm run cov && npm run tsc",
     "autod": "autod",
     "lint": "tslint --project . -c tslint.json",
-    "clean": "ets clean"
+    "init-database": "use database init.sql"
   },
   "dependencies": {
     "ali-oss": "^6.2.0",
