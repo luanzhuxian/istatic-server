@@ -4,7 +4,7 @@
 
 ## QuickStart
 
-### Development
+### 本地开发环境启动
 
 ```bash
 $ npm i
@@ -14,7 +14,7 @@ $ open http://localhost:7001/
 
 Don't tsc compile at development mode, if you had run `tsc` then you need to `npm run clean` before `npm run dev`.
 
-### Deploy
+### 生产环境启动
 
 ```bash
 $ npm run tsc
