@@ -1,6 +1,8 @@
 import { Service } from 'egg'
 import pinyin = require('pinyin')
 import { readStreamPromise } from '../../lib/utils'
+import cheerio = require('cheerio')
+
 export default class Icons extends Service {
   timer: any = 0
   public async getList (query) {
@@ -23,13 +25,6 @@ export default class Icons extends Service {
       .flat(2)
       .join('')
 
-    // 重新上传的处理
-    if (fields.id) {
-      return this.update(fields.id, {
-        content: buffer.toString('utf8')
-      })
-    }
-
     try {
       const checkSql = `SELECT icon_name from icons WHERE icon_name LIKE ?`
       const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc, project_id, namespace) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?, ?, ?)'
@@ -39,8 +34,29 @@ export default class Icons extends Service {
         namePingYin += `-${has.length}`
       }
       namePingYin = 'pl-' + namePingYin
+
+      // 删除svg上的无用信息
+      let content = buffer.toString('utf8')
+      const $ = cheerio.load(content)
+      $('svg')
+        .removeAttr('width')
+        .removeAttr('height')
+        .removeAttr('fill')
+        .removeAttr('xmlns')
+        .removeAttr('xlink')
+        .removeAttr('xmlns:xlink')
+        .attr('id', namePingYin)
+      content = $('body').html()
+      // 重新上传的处理
+      console.log(fields.id)
+      if (fields.id) {
+        return this.update(fields.id, {
+          content
+        })
+      }
+
       const res = await mysql.query(insertSql, [
-        buffer.toString('utf8'),
+        content,
         namePingYin,
         filename,
         fields.projectId,
