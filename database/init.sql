@@ -25,14 +25,19 @@ CREATE TABLE project (
 # 图标表
 CREATE TABLE icons (
 	id VARCHAR(32) PRIMARY KEY NOT NULL,
+	project_id VARCHAR(32),
 	content TEXT, # 图标内容
 	icon_name VARCHAR(50) NOT NULL, # 图标名称
-	icon_desc VARCHAR(50) # 图标描述
+	icon_desc VARCHAR(50),	# 图标描述
+	visible NOT NULL INT DEFAULT 1,
+	namespaec VARCHAR(50) # 命名空间
 );
 
 # 图标打包后的链接
 CREATE TABLE link (
  id VARCHAR(32) PRIMARY KEY NOT NULL,
  css VARCHAR(150),
- js VARCHAR(150)
+ js VARCHAR(150),
+ create_time datetime NOT NULL DEFAULT NOW(),
+ hash VARCHAR(100)
 )

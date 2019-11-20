@@ -5,12 +5,14 @@ import fs = require('fs')
 import path = require('path')
 import cheerio = require('cheerio')
 import uuidv1 = require('uuid/v1')
+import crypto = require('crypto')
+
 export default class Icons extends Service {
   /**
    * 生成在线链接
    */
   public async index () {
-    const SQL = `SELECT * FROM icons`
+    const SQL = `SELECT * FROM icons WHERE visible = 1`
     const svgs = await this.app.mysql.query(SQL)
     let str = ''
     for (const svg of svgs) {
@@ -47,12 +49,43 @@ export default class Icons extends Service {
       })
       const res = await client.putStream(`pl-icons/${filename}.js`, stream)
       fs.unlinkSync(filePath)
+      const url = `https://mallcdn.youpenglai.com/${res.name}`
+      // 存储url
+      await this.saveLink(url, str)
       return {
         key: res.name,
-        url: `https://mallcdn.youpenglai.com/${res.name}`
+        url
       }
     } catch (e) {
       throw e
     }
+  }
+
+  /**
+   * 存储链接，并为当前spirit生成hash值，通过hash值可判断图标是否发生过修改
+   * @param js {string} js链接地址
+   * @param spirit {string} svg 精灵
+   */
+  public saveLink (js, spirit) {
+    const hash = crypto.createHash('sha256')
+    return new Promise((resolve, reject) => {
+      hash.on('readable', async () => {
+        // 哈希流只会生成一个元素。
+        const data = hash.read()
+        if (data) {
+          const id = uuidv1().replace(/\-/g, '')
+          const sql = 'INSERT INTO link (id, js, hash) VALUES (?,?,?)'
+          const hashCode = data.toString('hex')
+          try {
+            const res = await this.app.mysql.query(sql, [ id, js, hashCode ])
+            resolve(res)
+          } catch (e) {
+            reject(e)
+          }
+        }
+      })
+      hash.write(spirit)
+      hash.end()
+    })
   }
 }
