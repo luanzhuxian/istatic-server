@@ -4,7 +4,6 @@
 class AppBootHook {
     constructor(app) {
         this.app = app;
-        console.log(app.config.mysql.client)
     }
 
     configWillLoad(a) {
