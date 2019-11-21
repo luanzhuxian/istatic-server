@@ -7,7 +7,7 @@ import crypto = require('crypto')
 export default class Icons extends Service {
   timer: any = 0
   public async getList (query) {
-    const { visible, projectId } = query
+    const { visible, projectId = '' } = query
     const SQL = `SELECT * FROM icons WHERE project_id = ? AND visible = ?`
     const oldHash = await this.app.redis.hget('pl-icon-hash', `svg-pro-id-${projectId}`)
     const list = await this.app.mysql.query(SQL, [ projectId, visible ])

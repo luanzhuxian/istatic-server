@@ -4,7 +4,12 @@ import uuidv1 = require('uuid/v1')
 export default class Icons extends Service {
   public async getList () {
     const SQL = `SELECT *,DATE_FORMAT(create_time, '%Y-%m-%d %T') as create_time, DATE_FORMAT(update_time, '%Y-%m-%d %T') as update_time FROM project`
-    return this.app.mysql.query(SQL)
+    let res = await this.app.mysql.query(SQL)
+    res.map(item => {
+      item.name = item.project_name
+      delete item.project_name
+    })
+    return res
   }
 
   public async create (data: ProjectData) {
@@ -40,6 +45,14 @@ export default class Icons extends Service {
         return current[0]
       }
       return null
+    } catch (e) {
+      throw e
+    }
+  }
+
+  public async destroy (id) {
+    try {
+      return this.app.mysql.query('DELETE FROM project WHERE id = ?', [ id ])
     } catch (e) {
       throw e
     }
