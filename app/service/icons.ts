@@ -76,7 +76,7 @@ export default class Icons extends Service {
   }
   public async destroy (id) {
     const sql = `DELETE FROM icons WHERE id = ?`
-    const current = this.app.mysql.query(`SELECT project_id FROM icons WHERE id = ?`, [ id ])
+    const current = await this.app.mysql.query(`SELECT project_id FROM icons WHERE id = ?`, [ id ])
     const res = await this.app.mysql.query(sql, [ id ])
     await this.updateProject(current[0].project_id)
     return res
@@ -88,7 +88,7 @@ export default class Icons extends Service {
     let icon = await mysql.query(querySql, [ id ])
     icon = icon[0]
     const {
-      visible = icon.visible,
+      visible,
       name = icon.icon_name,
       desc = icon.icon_desc,
       projectId = icon.project_id,
