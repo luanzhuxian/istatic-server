@@ -34,7 +34,7 @@ export default class Icons extends Service {
       const { accessKeySecret, accessKeyId, securityToken } = data.result.credentials
       const filename = uuidv1()
       const filePath = path.join(__dirname, `../../temp/${filename}.js`)
-      fs.writeFileSync(filePath, svgScript, { encoding: 'utf8' })
+      await fs.promises.writeFile(filePath, svgScript, { encoding: 'utf8' })
       const stream = fs.createReadStream(filePath)
       const client = new Oss({
         region: 'oss-cn-hangzhou',
@@ -45,7 +45,7 @@ export default class Icons extends Service {
         bucket: 'penglai-weimall'
       })
       const res = await client.putStream(`pl-icons/${filename}.js`, stream)
-      fs.unlinkSync(filePath)
+      await fs.promises.unlink(filePath)
       const url = `https://mallcdn.youpenglai.com/${res.name}`
       // 存储url
       await this.saveLink(url, svgStr, projectId)
