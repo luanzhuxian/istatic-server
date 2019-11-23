@@ -12,7 +12,6 @@ export default (appInfo: EggAppInfo) => {
       formLimit: '1mb'
     },
     multipart: {
-      fileSize: '50mb',
       mode: 'stream'
     },
     middleware: [

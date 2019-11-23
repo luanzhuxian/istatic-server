@@ -1,6 +1,7 @@
 import { Controller } from 'egg'
+import fs = require("fs")
 // import fs = require('fs')
-// import path = require('path');
+import path = require('path')
 export default class IconsController extends Controller {
   // 获取图标
   public async index(ctx) {
@@ -15,28 +16,43 @@ export default class IconsController extends Controller {
   }
   // 上传图标
   public async create(ctx) {
-    let readStream
-    const rule = {
-      projectId: {
-        type: 'string',
-        require: true,
-        trim: true
-      },
-      mimeType: 'isSvg'
-    }
-
+    const parts = ctx.multipart()
+    let part
+    const data: any[] = []
     try {
-      readStream = await ctx.getFileStream()
-      const { mimeType } = readStream
-      readStream.fields.mimeType = mimeType
-      ctx.validate(rule, readStream.fields)
-    } catch (e) {
-      ctx.status = 403
-      throw e
-    }
-
-    try {
-      await ctx.service.icons.create(readStream)
+      while (part !== null) {
+        part = await parts()
+        const fields: any = {}
+        if (part.length) {
+          /**
+           * 不是文件流，其它字段（非文件字段时，part是个数组）
+           * 0 field, 1 value, 2 valueTruncated, 3 fieldnameTruncated
+           */
+          // if (part[0] !== 'projectId' && part[0] !== 'id') {
+          //   ctx.status = 403
+          //   throw new Error('参数错误')
+          // }
+          fields[part[0]] = part[1]
+          console.log(part[0], part[1], fields)
+          part = {}
+        } else {
+          // part 是上传的文件流
+          if (!part.filename) {
+            // 不包含文件
+            ctx.status = 403
+            throw new Error('必须包含文件')
+          }
+          if (part.mimeType !== 'image/svg+xml') {
+            // 不是svg文件
+            ctx.status = 403
+            throw new Error('必须是svg文件')
+          }
+          fields.file = part
+          part.pipe(fs.createWriteStream(path.join(__dirname, `../../temp/${part.filename}`)))
+        }
+        data.push(fields)
+      }
+      await ctx.service.icons.create(data)
       ctx.status = 200
       return true
     } catch (e) {

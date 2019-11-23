@@ -3,8 +3,8 @@ import moment = require("moment")
 import uuidv1 = require('uuid/v1')
 export default class Icons extends Service {
   public async getList () {
-    const SQL = `SELECT *,DATE_FORMAT(create_time, '%Y-%m-%d %T') as create_time, DATE_FORMAT(update_time, '%Y-%m-%d %T') as update_time FROM project`
-    let res = await this.app.mysql.query(SQL)
+    const SQL = `SELECT *,DATE_FORMAT(create_time, '%Y-%m-%d %T') as create_time, DATE_FORMAT(update_time, '%Y-%m-%d %T') as update_time FROM project order by 'update_time' desc`
+    const res = await this.app.mysql.query(SQL)
     res.map(item => {
       item.name = item.project_name
       delete item.project_name
