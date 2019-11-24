@@ -1,5 +1,5 @@
 import { Service } from 'egg'
-// import pinyin = require('pinyin')
+import pinyin = require('pinyin')
 // import { readStreamPromise } from '../../lib/utils'
 // import cheerio = require('cheerio')
 import crypto = require('crypto')
@@ -21,57 +21,68 @@ export default class Icons extends Service {
     }
   }
   public async create (data) {
-    // const mysql = this.app.mysql
+    const mysql = this.app.mysql
+    const {
+      files,
+      id,
+      projectId,
+      namespace
+    } = data
+    for (const svg of files) {
+      const filename = svg.filename
 
-    for (const filed of data) {
-      const { file, id, projectId, namespace = '' } = filed
-      const filename: string = file.filename.replace('.svg', '')
-      console.log(filename, id, projectId, namespace)
       // 如果文件名是中文的，转成拼音
-      // let namePingYin = pinyin(filename, {
-      //   heteronym: false,
-      //   segment: false,
-      //   style: pinyin.STYLE_NORMAL
-      // })
-      //   .flat(2)
-      //   .join('')
-      //
-      // const checkSql = `SELECT icon_name from icons WHERE icon_name LIKE ?`
-      // const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc, project_id, namespace) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?, ?, ?)'
-      // const has = await mysql.query(checkSql, [ 'pl-' + namePingYin + '%' ])
-      // // 如果发现重名的图标，自动拼接序号
-      // if (has.length) {
-      //   namePingYin += `-${has.length}`
-      // }
-      // namePingYin = 'pl-' + namePingYin
-      //
-      // // 删除svg上的无用信息
-      // // const content = buffer.toString('utf8')
-      // // const $ = cheerio.load(content)
-      // // $('svg')
-      // // .removeAttr('width')
-      // // .removeAttr('height')
-      // // .removeAttr('fill')
-      // // .removeAttr('xmlns')
-      // // .removeAttr('xlink')
-      // // .removeAttr('xmlns:xlink')
-      // // .attr('id', namePingYin)
-      // // content = $('body').html()
-      // // 重新上传的处理
-      // if (id) {
-      //   return this.update(id, {
-      //     content: file
-      //   })
-      // }
-      // await mysql.query(insertSql, [
-      //   file,
-      //   namePingYin,
-      //   filename,
-      //   projectId,
-      //   namespace
-      // ])
-      // await this.updateProject(projectId)
+      let namePingYin = pinyin(filename, {
+        heteronym: false,
+        segment: false,
+        style: pinyin.STYLE_NORMAL
+      })
+        .flat(2)
+        .join('')
+
+      const chunks: Buffer[] = []
+      for await (const chunk of svg) {
+        chunks.push(chunk)
+      }
+      const content = Buffer.concat(chunks).toString('utf8')
+      const checkSql = `SELECT icon_name from icons WHERE icon_name LIKE ?`
+      const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc, project_id, namespace) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?, ?, ?)'
+      const has = await mysql.query(checkSql, [ 'pl-' + namePingYin + '%' ])
+      // 如果发现重名的图标，自动拼接序号
+      if (has.length) {
+        namePingYin += `-${has.length}`
+      }
+      // 删除svg上的无用信息
+      // const $ = cheerio.load(content)
+      // $('svg')
+      // .removeAttr('width')
+      // .removeAttr('height')
+      // .removeAttr('fill')
+      // .removeAttr('xmlns')
+      // .removeAttr('xlink')
+      // .removeAttr('xmlns:xlink')
+      // .attr('id', namePingYin)
+      // content = $('body').html()
+      // 重新上传的处理
+      if (id) {
+        return this.update(id, {
+          content
+        })
+      }
+      await mysql.query(insertSql, [
+        content,
+        namePingYin,
+        filename,
+        projectId,
+        namespace
+      ])
+      await this.updateProject(projectId)
     }
+    // for (const filed of data) {
+    //   const { file, id, projectId, namespace = '' } = filed
+    //   const filename: string = file.filename.replace('.svg', '')
+    //   console.log(filename, id, projectId, namespace)
+    // }
     return true
   }
   public async destroy (id) {

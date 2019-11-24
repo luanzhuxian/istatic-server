@@ -1,7 +1,7 @@
 import { Controller } from 'egg'
-import fs = require("fs")
+// import fs = require("fs")
 // import fs = require('fs')
-import path = require('path')
+// import path = require('path')
 export default class IconsController extends Controller {
   // 获取图标
   public async index(ctx) {
@@ -17,25 +17,26 @@ export default class IconsController extends Controller {
   // 上传图标
   public async create(ctx) {
     const parts = ctx.multipart()
-    let part
-    const data: any[] = []
+    interface Data {
+      files: string[]
+    }
+    const data: Data = {
+      files: []
+    }
+    let part = await parts()
     try {
-      while (part !== null) {
-        part = await parts()
-        const fields: any = {}
+      while (part) {
         if (part.length) {
           /**
            * 不是文件流，其它字段（非文件字段时，part是个数组）
            * 0 field, 1 value, 2 valueTruncated, 3 fieldnameTruncated
            */
-          // if (part[0] !== 'projectId' && part[0] !== 'id') {
-          //   ctx.status = 403
-          //   throw new Error('参数错误')
-          // }
-          fields[part[0]] = part[1]
-          console.log(part[0], part[1], fields)
-          part = {}
-        } else {
+          if (part[0] !== 'projectId' && part[0] !== 'id') {
+            ctx.status = 403
+            throw new Error('参数错误')
+          }
+          data[part[0]] = part[1]
+        } else if (part) {
           // part 是上传的文件流
           if (!part.filename) {
             // 不包含文件
@@ -47,14 +48,19 @@ export default class IconsController extends Controller {
             ctx.status = 403
             throw new Error('必须是svg文件')
           }
-          fields.file = part
-          part.pipe(fs.createWriteStream(path.join(__dirname, `../../temp/${part.filename}`)))
+          // const chunks: Buffer[] = []
+          // let chunkLen = 0
+          // for await (const chunk of part) {
+          //   chunks.push(chunk)
+          //   chunkLen += chunk.length
+          // }
+          data.files.push(part)
         }
-        data.push(fields)
+        part = await parts()
       }
       await ctx.service.icons.create(data)
       ctx.status = 200
-      return true
+      return data
     } catch (e) {
       ctx.status = 500
       throw e

@@ -4,7 +4,7 @@ export default () => {
   const config = {} as PowerPartial<EggAppConfig>
   config.mysql = {
     client: {
-      host: 'localhost',
+      host: '192.168.130.33',
       port: '3306',
       user: 'root',
       password: '123456',
