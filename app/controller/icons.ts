@@ -17,11 +17,8 @@ export default class IconsController extends Controller {
   // 上传图标
   public async create(ctx) {
     const parts = ctx.multipart()
-    interface Data {
-      files: string[]
-    }
-    const data: Data = {
-      files: []
+    const data = {
+      file: null
     }
     let part = await parts()
     try {
@@ -48,17 +45,11 @@ export default class IconsController extends Controller {
             ctx.status = 403
             throw new Error('必须是svg文件')
           }
-          // const chunks: Buffer[] = []
-          // let chunkLen = 0
-          // for await (const chunk of part) {
-          //   chunks.push(chunk)
-          //   chunkLen += chunk.length
-          // }
-          data.files.push(part)
+          data.file = part
+          await ctx.service.icons.create(data)
         }
         part = await parts()
       }
-      await ctx.service.icons.create(data)
       ctx.status = 200
       return data
     } catch (e) {

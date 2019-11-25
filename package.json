@@ -30,6 +30,7 @@
     "egg-redis": "^2.4.0",
     "egg-scripts": "^2.6.0",
     "egg-validate": "^2.0.2",
+    "html-minifier": "^4.0.0",
     "moment": "^2.24.0",
     "pinyin": "^2.9.0",
     "uuid": "^3.3.3"

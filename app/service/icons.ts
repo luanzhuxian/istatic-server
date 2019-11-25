@@ -1,7 +1,8 @@
 import { Service } from 'egg'
 import pinyin = require('pinyin')
-// import { readStreamPromise } from '../../lib/utils'
-// import cheerio = require('cheerio')
+import uuidv4 = require("uuid/v4")
+// import minify = require('html-minifier')
+import cheerio = require('cheerio')
 import crypto = require('crypto')
 
 export default class Icons extends Service {
@@ -11,9 +12,6 @@ export default class Icons extends Service {
     const SQL = `SELECT * FROM icons WHERE project_id = ? AND visible = ? ORDER BY 'update_time' DESC`
     const oldHash = await this.app.redis.hget('pl-icon-hash', `svg-pro-id-${projectId}`)
     const list = await this.app.mysql.query(SQL, [ projectId, visible ])
-    // for (const svg of list) {
-    //   svg.content = svg.content.toString('utf8')
-    // }
     const newHash = await this.getHash(list)
     return {
       changed: list.length && visible === '1' ? oldHash !== newHash : false,
@@ -23,66 +21,54 @@ export default class Icons extends Service {
   public async create (data) {
     const mysql = this.app.mysql
     const {
-      files,
+      file,
       id,
       projectId,
       namespace
     } = data
-    for (const svg of files) {
-      const filename = svg.filename
-
-      // 如果文件名是中文的，转成拼音
-      let namePingYin = pinyin(filename, {
-        heteronym: false,
-        segment: false,
-        style: pinyin.STYLE_NORMAL
-      })
-        .flat(2)
-        .join('')
-
-      const chunks: Buffer[] = []
-      for await (const chunk of svg) {
-        chunks.push(chunk)
-      }
-      const content = Buffer.concat(chunks).toString('utf8')
-      const checkSql = `SELECT icon_name from icons WHERE icon_name LIKE ?`
-      const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc, project_id, namespace) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?, ?, ?)'
-      const has = await mysql.query(checkSql, [ 'pl-' + namePingYin + '%' ])
-      // 如果发现重名的图标，自动拼接序号
-      if (has.length) {
-        namePingYin += `-${has.length}`
-      }
-      // 删除svg上的无用信息
-      // const $ = cheerio.load(content)
-      // $('svg')
-      // .removeAttr('width')
-      // .removeAttr('height')
-      // .removeAttr('fill')
-      // .removeAttr('xmlns')
-      // .removeAttr('xlink')
-      // .removeAttr('xmlns:xlink')
-      // .attr('id', namePingYin)
-      // content = $('body').html()
-      // 重新上传的处理
-      if (id) {
-        return this.update(id, {
-          content
-        })
-      }
-      await mysql.query(insertSql, [
-        content,
-        namePingYin,
-        filename,
-        projectId,
-        namespace
-      ])
-      await this.updateProject(projectId)
+    const chunks: Buffer[] = []
+    const filename = file.filename.split('.')[0]
+    let chunkLen = 0
+    // 如果文件名是中文的，转成拼音
+    let namePingYin = pinyin(filename, {
+      heteronym: false,
+      segment: false,
+      style: pinyin.STYLE_NORMAL
+    })
+      .flat(2)
+      .join('')
+    for await (const chunk of file) {
+      chunks.push(chunk)
+      chunkLen += chunk.length
     }
-    // for (const filed of data) {
-    //   const { file, id, projectId, namespace = '' } = filed
-    //   const filename: string = file.filename.replace('.svg', '')
-    //   console.log(filename, id, projectId, namespace)
-    // }
+    let content = Buffer.concat(chunks, chunkLen).toString('utf8')
+    const $ = cheerio.load(content)
+    // 删除svg上没有用的一些属性
+    this.removeSvgsAttr($)
+    this.modifySvgsId($)
+    $('svg').attr('id', 'icon-' + namePingYin)
+    content = $('body').html()
+    // 重新上传的处理
+    if (id) {
+      return this.update(id, {
+        content
+      })
+    }
+    const checkSql = `SELECT icon_name from icons WHERE icon_name LIKE ?`
+    const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc, project_id, namespace) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?, ?, ?)'
+    const has = await mysql.query(checkSql, [ 'icon-' + namePingYin + '%' ])
+    // 如果发现重名的图标，自动拼接序号
+    if (has.length) {
+      namePingYin += `-${has.length}`
+    }
+    await mysql.query(insertSql, [
+      content,
+      'icon-' + namePingYin,
+      filename,
+      projectId,
+      namespace
+    ])
+    await this.updateProject(projectId)
     return true
   }
   public async destroy (id) {
@@ -99,7 +85,7 @@ export default class Icons extends Service {
     let icon = await mysql.query(querySql, [ id ])
     icon = icon[0]
     const {
-      visible,
+      visible = icon.visible,
       name = icon.icon_name,
       desc = icon.icon_desc,
       projectId = icon.project_id,
@@ -133,6 +119,29 @@ export default class Icons extends Service {
       hash.write(svgStr)
       hash.end()
     })
+  }
+  /**
+   * 修改svg元素的id, 降低其重复的可能性
+   * @param svg {cheerio}
+   */
+  private modifySvgsId ($) {
+    const hasIdEl: any[] = Array.from($('[id]'))
+    const svg = $('svg')
+    let html = svg.html()
+    for (const item of hasIdEl) {
+      const id = item.attribs.id
+      const newId = uuidv4()
+      console.log(id, newId)
+      // // 用新id替换所有旧id
+      html = html.replace(new RegExp(`${id}`, 'g'), newId)
+    }
+    svg.html(html)
+  }
+  private removeSvgsAttr ($) {
+    $('svg')
+      .removeAttr('width')
+      .removeAttr('height')
+      .removeAttr('fill')
   }
   // 更新hash
   // private async updateSvgHash () {
