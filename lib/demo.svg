@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="375px" height="132px" viewBox="0 0 375 132" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 55.1 (78136) - https://sketchapp.com -->
+    <title>Group 8</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <rect id="path-1" x="0" y="0" width="375" height="132"></rect>
+        <linearGradient x1="-15.5163298%" y1="47.5955073%" x2="100%" y2="52.0735621%" id="linearGradient-3">
+            <stop stop-color="#FFFD61" offset="0%"></stop>
+            <stop stop-color="#FFB200" stop-opacity="0" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="-15.5163298%" y1="46.7107928%" x2="100%" y2="52.8365133%" id="linearGradient-4">
+            <stop stop-color="#FFFD61" offset="0%"></stop>
+            <stop stop-color="#FFB200" stop-opacity="0" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="VC1.5.0-H5_商品订单" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="确认收货" transform="translate(0.000000, -58.000000)">
+            <g id="Group-4" transform="translate(0.000000, 58.000000)">
+                <g id="Group-8">
+                    <mask id="mask-2" fill="white">
+                        <use xlink:href="#path-1"></use>
+                    </mask>
+                    <use id="Mask" fill="#FE7700" xlink:href="#path-1"></use>
+                    <g mask="url(#mask-2)" id="Path-2" opacity="0.300000012">
+                        <g transform="translate(-22.000000, 83.470588)">
+                            <path d="M7,48.6911765 C58,13.1748366 104.083333,1.33605664 145.25,13.1748366 C207,30.9330065 205.25,60.6437908 281,30.9330065 C356.75,1.22222222 392.75,14.7116013 398.25,21.7124183 C401.916667,26.3796296 405,43.2271242 407.5,72.254902 C227.666667,85.2320261 135.333333,91.7205882 130.5,91.7205882 C125.666667,91.7205882 82.1666667,88.8747277 0,83.1830065 L7,48.6911765 Z" fill="url(#linearGradient-3)"></path>
+                            <path d="M71.5,46.7320261 C122.5,5.19244735 168.583333,-8.65407892 209.75,5.19244735 C271.5,25.9622367 269.75,60.7116921 345.5,25.9622367 C421.25,-8.78721859 457.25,6.98983297 462.75,15.177923 C466.416667,20.6366497 469.5,40.3413217 472,74.291939 C292.166667,89.469862 199.833333,97.0588235 195,97.0588235 C190.166667,97.0588235 146.666667,93.7303316 64.5,87.0733479 L71.5,46.7320261 Z" fill="url(#linearGradient-4)"></path>
+                        </g>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

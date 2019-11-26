@@ -42,10 +42,10 @@ export default class Icons extends Service {
       chunkLen += chunk.length
     }
     let content = Buffer.concat(chunks, chunkLen).toString('utf8')
+    content = this.modifySvgsId(content)
     const $ = cheerio.load(content)
     // 删除svg上没有用的一些属性
     this.removeSvgsAttr($)
-    this.modifySvgsId($)
     $('svg').attr('id', 'icon-' + namePingYin)
     content = $('body').html()
     // 重新上传的处理
@@ -121,21 +121,23 @@ export default class Icons extends Service {
     })
   }
   /**
-   * 修改svg元素的id, 降低其重复的可能性
+   * 修改svg中的id, 避免不同svg之间id重复
    * @param svg {cheerio}
    */
-  private modifySvgsId ($) {
-    const hasIdEl: any[] = Array.from($('[id]'))
-    const svg = $('svg')
-    let html = svg.html()
-    for (const item of hasIdEl) {
-      const id = item.attribs.id
-      const newId = uuidv4()
-      console.log(id, newId)
-      // // 用新id替换所有旧id
-      html = html.replace(new RegExp(`${id}`, 'g'), newId)
+  private modifySvgsId (svg) {
+    const ids = svg.matchAll(/id\s*=\s*"([^"]+)"/gi)
+    for (const val of ids) {
+      const newId = uuidv4().replace(/\-/g, '').replace(/\d/g, '')
+      svg = svg.replace(new RegExp(`${val[0]}`, 'gim'), `id="${newId}"`)
+      svg = svg.replace(new RegExp(`"#${val[1]}"`, 'gim'), `"#${newId}"`)
+      svg = svg.replace(new RegExp(`\\(#${val[1]}\\)`, 'gim'), `(#${newId})`)
     }
-    svg.html(html)
+    const classes = svg.matchAll(/class\s*=\s*"([^"]+)"/gi)
+    for (const val of classes) {
+      const newClass = uuidv4().replace(/\-/g, '').replace(/\d/g, '')
+      svg = svg.replace(new RegExp(`${val[1]}`, 'gim'), newClass)
+    }
+    return svg
   }
   private removeSvgsAttr ($) {
     $('svg')
