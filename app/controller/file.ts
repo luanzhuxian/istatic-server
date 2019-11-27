@@ -1,7 +1,12 @@
 import { Controller } from 'egg'
 import moment = require("moment")
+import mime = require("mime")
+import uuidv4 = require("uuid/v4")
+import fs = require("fs")
+import path = require("path")
 
 export default class FileController extends Controller {
+  prefixe: string = 'static/'
   /**
    * 获取文件列表
    * 文件默认目录：static
@@ -11,7 +16,6 @@ export default class FileController extends Controller {
     try {
       let prefixe = ctx.request.query.prefixe
       prefixe = prefixe ? `static/${prefixe}` : 'static/'
-      console.log(prefixe)
       const client = this.app.ossClient
       const result = await client.list({
         prefix: prefixe,
@@ -34,10 +38,6 @@ export default class FileController extends Controller {
           item.lastModified = moment(item.lastModified).format('YYYY-MM-DD HH:mm:ss')
           return item
         })
-        // 如果当前目录下存在目录，objects下的第一条数据是这些目录的总大小，应删掉
-        if (prefixes) {
-          // objects.splice(0, 1)
-        }
       }
       ctx.status = 200
       return {
@@ -52,7 +52,39 @@ export default class FileController extends Controller {
   }
   // 上传文件
   public async create (ctx) {
-    console.log(ctx)
+    const parts = ctx.multipart()
+    const dir = this.prefixe + ctx.request.query.dir
+    let part = await parts()
+    interface Results {
+      success: any[],
+      failing: any[]
+    }
+    const results: Results = {
+      success: [],
+      failing: []
+    }
+    while (part != null) {
+      if (!part.filename) {
+        return
+      }
+      const filename = uuidv4()
+      const ext = mime.getExtension(part.mimeType)
+      console.log(dir + filename + '.' + ext)
+      try {
+        const result = await this.app.ossClient.putStream(dir + filename + '.' + ext, part)
+        delete result.res
+        results.success.push(result)
+      } catch (err) {
+        part.pipe(fs.createWriteStream(path.join(__dirname, `../../temp/${filename}.${ext}`)))
+        results.failing.push({
+          message: err.message,
+          file: part.filename
+        })
+      }
+      part = await parts()
+    }
+    ctx.status = 200
+    return results
   }
   // 下载文件
   // public async download (url) {
