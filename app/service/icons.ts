@@ -29,6 +29,7 @@ export default class Icons extends Service {
     const chunks: Buffer[] = []
     const filename = file.filename.split('.')[0]
     let chunkLen = 0
+
     // 如果文件名是中文的，转成拼音
     let namePingYin = pinyin(filename, {
       heteronym: false,
@@ -144,6 +145,9 @@ export default class Icons extends Service {
       .removeAttr('width')
       .removeAttr('height')
       .removeAttr('fill')
+      .removeAttr('xmlns')
+      .removeAttr('xlink')
+      .removeAttr('version')
   }
   // 更新hash
   // private async updateSvgHash () {
