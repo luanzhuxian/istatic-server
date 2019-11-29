@@ -6,5 +6,6 @@ export default (app: Application) => {
   router.resources('project', '/api/project', controller.project)
   router.resources('link', '/api/link', controller.link)
   router.resources('file', '/api/file', controller.file)
+  router.post('/api/create/dir/:dirname', controller.file.createDir)
   // router.resources('download_file', '/api/file/download', controller.download)
 }

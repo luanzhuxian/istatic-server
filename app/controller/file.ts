@@ -86,6 +86,31 @@ export default class FileController extends Controller {
     ctx.status = 200
     return results
   }
+  // 新建文件夹
+  async createDir (ctx) {
+    const dir = this.prefixe + ctx.params.dirname + '/'
+    const client = this.app.ossClient
+    console.log(dir)
+    try {
+      const { res: exist } = await client.get(dir)
+      if (exist.status === 200) {
+        throw new Error('该目录已存在')
+      }
+    } catch (e) {
+      if (e.message === '该目录已存在') {
+        ctx.status = 500
+        throw new Error('该目录已存在')
+      }
+      try {
+        const { res: info } = await client.put(dir, Buffer.from(''))
+        ctx.status = 200
+        return info
+      } catch (err) {
+        ctx.status = 500
+        throw err
+      }
+    }
+  }
   // 下载文件
   // public async download (url) {
   //   try {

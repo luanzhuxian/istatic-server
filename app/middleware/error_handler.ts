@@ -5,6 +5,7 @@ module.exports = () => {
     } catch (e) {
       ctx.app.emit('error', e, ctx)
       const status = ctx.status = ctx.status || 500
+      ctx.status = 200
       if (status === 403) {
         e.message = '无效的参数'
         e.devMessage = e.errors
