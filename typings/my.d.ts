@@ -4,7 +4,8 @@ interface ProjectData {
 }
 interface Axios {
   get: any,
-  post: any
+  post: any,
+  create: any
 }
 interface IconsFields {
   projectId: string,

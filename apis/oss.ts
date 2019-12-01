@@ -1,7 +1,5 @@
-import axios from "axios"
-/*  */
-const Interface = axios.create({
-  baseURL: 'http://192.168.130.37'
+import axios from 'axios'
+const instance = axios.create({
+  baseURL: 'http://192.168.130.34'
 })
-Interface.defaults.baseURL = ''
-export const getSTS = () => Interface.get('/apis/v1/oss/upload/sts')
+export const getSTS = () => instance .get('/apis/v1/oss/upload/sts')
