@@ -1,5 +1,5 @@
-import axios from 'axios'
-const instance = axios.create({
-  baseURL: 'http://192.168.130.34'
+import axios from "axios"
+const Instance = axios.create({
+  baseURL: 'https://admall.youpenglai.com'
 })
-export const getSTS = () => instance .get('/apis/v1/oss/upload/sts')
+export const getSTS = () => Instance.get('/apis/v1/oss/upload/sts')
