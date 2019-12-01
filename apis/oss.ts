@@ -1,3 +1,7 @@
 import axios from "axios"
-axios.defaults.baseURL = 'https://admall.youpenglai.com'
-export const getSTS = () => axios.get('/apis/v1/oss/upload/sts')
+/*  */
+const Interface = axios.create({
+  baseURL: 'http://192.168.130.37'
+})
+Interface.defaults.baseURL = ''
+export const getSTS = () => Interface.get('/apis/v1/oss/upload/sts')
