@@ -1,6 +1,7 @@
 import { Service } from 'egg'
 import pinyin = require('pinyin')
 import uuidv4 = require("uuid/v4")
+import moment = require("moment")
 // import minify = require('html-minifier')
 import cheerio = require('cheerio')
 import crypto = require('crypto')
@@ -82,7 +83,7 @@ export default class Icons extends Service {
   public async update (id, body) {
     const mysql = this.app.mysql
     const querySql = `SELECT * FROM icons WHERE id = ?`
-    const updateSql = `UPDATE icons SET icon_name = ?, icon_desc = ?, content = ?, project_id = ?, namespace = ?, visible = ? WHERE id = ?`
+    const updateSql = `UPDATE icons SET icon_name = ?, icon_desc = ?, content = ?, project_id = ?, namespace = ?, visible = ?, update_time = ? WHERE id = ?`
     let icon = await mysql.query(querySql, [ id ])
     icon = icon[0]
     const {
@@ -93,7 +94,8 @@ export default class Icons extends Service {
       content = icon.content,
       namespace = icon.namespace
     } = body
-    await mysql.query(updateSql, [ name, desc, content, projectId, namespace, visible, id ])
+    const updateTime = moment().format('YYYY-MM-DD HH:mm:ss')
+    await mysql.query(updateSql, [ name, desc, content, projectId, namespace, visible, updateTime, id ])
     const res = await mysql.query(querySql, [ id ])
     await this.updateProject(projectId)
     return res
@@ -148,6 +150,7 @@ export default class Icons extends Service {
       .removeAttr('xmlns')
       .removeAttr('xlink')
       .removeAttr('version')
+      .removeAttr('t')
   }
   // 更新hash
   // private async updateSvgHash () {

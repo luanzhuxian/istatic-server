@@ -19,7 +19,7 @@ export default () => {
     client: {
       host: '192.168.130.33',   // Redis
       port: 6379,          // Redis port
-      password: '123456',
+      password: '',
       db: 0
     },
     // 是否加载到 app 上，默认开启
