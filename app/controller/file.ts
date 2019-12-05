@@ -88,7 +88,7 @@ export default class FileController extends Controller {
   }
   // 新建文件夹
   async createDir (ctx) {
-    const dir = this.prefixe + ctx.params.dirname + '/'
+    const dir = this.prefixe + ctx.query.path + ctx.params.dirname + '/'
     const client = this.app.ossClient
     console.log(dir)
     try {
