@@ -21,14 +21,12 @@ export default class Icons extends Service {
    * 生成在线链接
    */
   public async create (projectId) {
-    const SQL = `SELECT content, id FROM icons WHERE visible = 1 AND project_id = ?`
+    const SQL = `SELECT content, id FROM icons WHERE visible = 1 AND project_id = ? ORDER BY update_time desc`
     const svgs = await this.app.mysql.query(SQL, [ projectId ])
-    // 将图标id拼接在一起
-    const svgStr = svgs.map(item => item.id).join('')
     // 将拼接在一起的图标修改为精灵
     const spirit = svgs.map(item => item.content).join('').replace(/svg/g, 'symbol')
     // 生成执行js文件
-    const svgScript = '!function(t){var h,v=`<svg>' + spirit + '</svg>`,l=(h=document.getElementsByTagName("script"))[h.length-1].getAttribute("data-injectcss");if(l&&!t.__iconfont__svg__cssinject__){t.__iconfont__svg__cssinject__=!0;try{document.write("<style>.svgfont {display: inline-block;width: 1em;height: 1em;fill: currentColor;vertical-align: -0.1em;font-size:16px;}</style>")}catch(h){console&&console.log(h)}}!function(h){if(document.addEventListener)if(~["complete","loaded","interactive"].indexOf(document.readyState))setTimeout(h,0);else{var l=function(){document.removeEventListener("DOMContentLoaded",l,!1),h()};document.addEventListener("DOMContentLoaded",l,!1)}else document.attachEvent&&(a=h,c=t.document,z=!1,(m=function(){try{c.documentElement.doScroll("left")}catch(h){return void setTimeout(m,50)}v()})(),c.onreadystatechange=function(){"complete"==c.readyState&&(c.onreadystatechange=null,v())});function v(){z||(z=!0,a())}var a,c,z,m}(function(){var h,l;(h=document.createElement("div")).innerHTML=v,v=null,(l=h.getElementsByTagName("svg")[0])&&(l.setAttribute("aria-hidden","true"),l.style.position="absolute",l.style.width=0,l.style.height=0,l.style.overflow="hidden",function(h,l){l.firstChild?function(h,l){l.parentNode.insertBefore(h,l)}(h,l.firstChild):l.appendChild(h)}(l,document.body))})}(window);'
+    const svgScript = this.createSvgScript(spirit)
     try {
       const { data } = await getSTS()
       const { accessKeySecret, accessKeyId, securityToken } = data.result.credentials
@@ -48,7 +46,7 @@ export default class Icons extends Service {
       await fs.promises.unlink(filePath)
       const url = `https://mallcdn.youpenglai.com/${res.name}`
       // 存储url
-      await this.saveLink(url, svgStr, projectId)
+      await this.saveLink(url, svgs, projectId)
       return {
         key: res.name,
         url
@@ -62,10 +60,11 @@ export default class Icons extends Service {
    * 存储链接，并为当前spirit生成hash值，通过hash值可判断图标是否发生过修改
    * @param js {string} js链接地址
    * @param projectId {string} 项目id
-   * @param svgStr {string} svg 精灵
+   * @param svgs {array} svg 精灵
    */
-  public saveLink (js, svgStr, projectId) {
+  public saveLink (js, svgs, projectId) {
     const hash = crypto.createHash('sha256')
+    const svgStr = svgs.map(item => item.id).join('')
     return new Promise((resolve, reject) => {
       hash.on('readable', async () => {
         // 哈希流只会生成一个元素。
@@ -86,5 +85,8 @@ export default class Icons extends Service {
       hash.write(svgStr)
       hash.end()
     })
+  }
+  private createSvgScript (spirit) {
+    return '!function(t){var h,v=`<svg>' + spirit + '</svg>`,l=(h=document.getElementsByTagName("script"))[h.length-1].getAttribute("data-injectcss");if(l&&!t.__iconfont__svg__cssinject__){t.__iconfont__svg__cssinject__=!0;try{document.write("<style>.svgfont {display: inline-block;width: 1em;height: 1em;fill: currentColor;vertical-align: -0.1em;font-size:16px;}</style>")}catch(h){console&&console.log(h)}}!function(h){if(document.addEventListener)if(~["complete","loaded","interactive"].indexOf(document.readyState))setTimeout(h,0);else{var l=function(){document.removeEventListener("DOMContentLoaded",l,!1),h()};document.addEventListener("DOMContentLoaded",l,!1)}else document.attachEvent&&(a=h,c=t.document,z=!1,(m=function(){try{c.documentElement.doScroll("left")}catch(h){return void setTimeout(m,50)}v()})(),c.onreadystatechange=function(){"complete"==c.readyState&&(c.onreadystatechange=null,v())});function v(){z||(z=!0,a())}var a,c,z,m}(function(){var h,l;(h=document.createElement("div")).innerHTML=v,v=null,(l=h.getElementsByTagName("svg")[0])&&(l.setAttribute("aria-hidden","true"),l.style.position="absolute",l.style.width=0,l.style.height=0,l.style.overflow="hidden",function(h,l){l.firstChild?function(h,l){l.parentNode.insertBefore(h,l)}(h,l.firstChild):l.appendChild(h)}(l,document.body))})}(window);'
   }
 }
