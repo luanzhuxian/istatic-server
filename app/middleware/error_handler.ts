@@ -3,17 +3,27 @@ module.exports = () => {
     try {
       await next()
     } catch (e) {
-      ctx.app.emit('error', e, ctx)
-      const status = ctx.status = ctx.status || 500
-      ctx.status = 200
-      if (status === 403) {
-        e.message = '无效的参数'
-        e.devMessage = e.errors
+      const status = ctx.status
+      switch (status) {
+        case 422:
+          e.devMessage = e.errors
+          e.message = '参数校验失败'
+          break
+        case 405:
+          e.devMessage = e.message
+          e.message = 'Method Not Allowed'
+          break
+        case 500:
+          e.devMessage = e.message
+          e.message = '运行时异常'
+          break
+        default:
+          e.devMessage = e.message
+          e.message = '未知错误'
       }
       ctx.body = {
         devMessage: e.devMessage || '',
         message: e.message,
-        status,
         result: null
       }
     }

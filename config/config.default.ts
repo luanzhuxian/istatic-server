@@ -4,7 +4,12 @@ export default (appInfo: EggAppInfo) => {
   const config = {
     security: {
       csrf: {
-        enable: false,
+        useSession: true, // 默认为 false，当设置为 true 时，将会把 csrf token 保存到 Session 中(通过ctx.session.csrfToken获取)
+        // cookieName: 'csrfToken', // Cookie 中的字段名，默认为 csrfToken
+        sessionName: 'token', // Session 中的字段名，默认为 csrfToken
+        headerName: 'token', // Session 中的字段名，默认为 csrfToken
+        // queryName: 'csrfToken', // 通过 query 传递 CSRF token 的默认字段为 csrfToken
+        // bodyName: 'csrfToken', // 通过 body 传递 CSRF token 的默认字段为 csrfToken
       },
     },
     bodyParser: {
@@ -26,6 +31,17 @@ export default (appInfo: EggAppInfo) => {
     },
     xframe: {
       enable: false,
+    },
+    /**
+     * session相关配置，这里配置的试默认值，可以通过ctx.session[pro]进行动态设置
+     * 可以通过ctx.session[key] = value 给session添加额外的值，这个值会被egg-session-redis放道redis中
+     * egg会自动生成session并设置到cookie中，并在请求的时候，根据 cookie中的session key(session_id) 自动获取到设置的 session 放在 ctx.session 中,
+     */
+    session: {
+      key: 'session_id', // session的key
+      maxAge: 24 * 3600 * 1000 * 30, // 30 天
+      httpOnly: true,
+      encrypt: true,
     }
   } as PowerPartial<EggAppConfig>
 

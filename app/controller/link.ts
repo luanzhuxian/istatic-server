@@ -17,7 +17,7 @@ export default class Porject extends Controller {
     try {
       await ctx.validate(rule, ctx.query)
     } catch (e) {
-      ctx.status = 403
+      ctx.status = 422
       throw e
     }
 

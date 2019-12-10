@@ -5,6 +5,7 @@ import { Controller } from 'egg'
 export default class IconsController extends Controller {
   // 获取图标
   public async index(ctx) {
+    console.log(ctx.session)
     try {
       const res = await ctx.service.icons.getList(ctx.query)
       ctx.status = 200
@@ -29,7 +30,7 @@ export default class IconsController extends Controller {
            * 0 field, 1 value, 2 valueTruncated, 3 fieldnameTruncated
            */
           if (part[0] !== 'projectId' && part[0] !== 'id') {
-            ctx.status = 403
+            ctx.status = 422
             throw new Error('参数错误')
           }
           data[part[0]] = part[1]
@@ -37,12 +38,12 @@ export default class IconsController extends Controller {
           // part 是上传的文件流
           if (!part.filename) {
             // 不包含文件
-            ctx.status = 403
+            ctx.status = 422
             throw new Error('必须包含文件')
           }
           if (part.mimeType !== 'image/svg+xml') {
             // 不是svg文件
-            ctx.status = 403
+            ctx.status = 422
             throw new Error('必须是svg文件')
           }
           data.file = part

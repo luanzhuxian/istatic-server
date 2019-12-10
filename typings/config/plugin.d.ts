@@ -17,6 +17,7 @@ import 'egg-view';
 import 'egg-mysql';
 import 'egg-validate';
 import 'egg-redis';
+import 'egg-session-redis';
 import { EggPluginItem } from 'egg';
 declare module 'egg' {
   interface EggPlugin {
@@ -35,5 +36,6 @@ declare module 'egg' {
     mysql?: EggPluginItem;
     validate?: EggPluginItem;
     redis?: EggPluginItem;
+    sessionRedis?: EggPluginItem;
   }
 }
