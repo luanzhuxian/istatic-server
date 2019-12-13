@@ -62,7 +62,7 @@ export default class Icons extends Service {
     }
     const checkSql = `SELECT icon_name from icons WHERE icon_name LIKE ?`
     const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc, project_id, namespace) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?, ?, ?)'
-    const has = await mysql.query(checkSql, [ 'icon-' + namePingYin + '%' ])
+    const has = await mysql.query(checkSql, [ '%' + namePingYin + '%' ])
     // 如果发现重名的图标，自动拼接序号
     if (has.length) {
       namePingYin += `-${has.length}`
