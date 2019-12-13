@@ -60,9 +60,10 @@ export default class Icons extends Service {
         content
       })
     }
-    const checkSql = `SELECT icon_name from icons WHERE icon_name LIKE ?`
+    // 查看当前项目是否存在同名图标，或者名字类似的图标，为放置重复，在名称后添加序号
+    const checkSql = `SELECT icon_name from icons WHERE icon_name LIKE ? AND project_id = ?`
     const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc, project_id, namespace) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?, ?, ?)'
-    const has = await mysql.query(checkSql, [ '%' + namePingYin + '%' ])
+    const has = await mysql.query(checkSql, [ '%' + namePingYin + '%', projectId ])
     // 如果发现重名的图标，自动拼接序号
     if (has.length) {
       namePingYin += `-${has.length}`
