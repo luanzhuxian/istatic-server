@@ -17,7 +17,7 @@ export default class Icons extends Service {
     `
     const oldHash = await this.app.redis.hget('pl-icon-hash', `svg-pro-id-${projectId}`)
     const list = await this.app.mysql.query(SQL, [ projectId, visible ])
-    const newHash = await this.getHash(list)
+    const newHash = await this.getHash(list.map(item => item.id).join(''))
     return {
       changed: list.length && visible === '1' ? oldHash !== newHash : false,
       list
@@ -34,15 +34,6 @@ export default class Icons extends Service {
     const chunks: Buffer[] = []
     const filename = file.filename.split('.')[0]
     let chunkLen = 0
-
-    // 如果文件名是中文的，转成拼音
-    let namePingYin = pinyin(filename, {
-      heteronym: false,
-      segment: false,
-      style: pinyin.STYLE_NORMAL
-    })
-      .flat(2)
-      .join('')
     for await (const chunk of file) {
       chunks.push(chunk)
       chunkLen += chunk.length
@@ -50,9 +41,18 @@ export default class Icons extends Service {
     let content = Buffer.concat(chunks, chunkLen).toString('utf8')
     content = this.modifySvgsId(content)
     const $ = cheerio.load(content)
+    let hash = await this.getHash(content)
+    hash = hash.substring(0, 5)
+    // 如果文件名是中文的，转成拼音
+    const namePingYin = pinyin(filename, {
+      heteronym: false,
+      segment: false,
+      style: pinyin.STYLE_NORMAL
+    }).flat(2).join('')
+    const name = `icon-${namePingYin}-${hash}`
     // 删除svg上没有用的一些属性
     this.removeSvgsAttr($)
-    $('svg').attr('id', 'icon-' + namePingYin)
+    $('svg').attr('id', name)
     content = $('body').html()
     // 重新上传的处理
     if (id) {
@@ -60,17 +60,10 @@ export default class Icons extends Service {
         content
       })
     }
-    // 查看当前项目是否存在同名图标，或者名字类似的图标，为放置重复，在名称后添加序号
-    const checkSql = `SELECT icon_name from icons WHERE icon_name LIKE ? AND project_id = ?`
     const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc, project_id, namespace) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?, ?, ?)'
-    const has = await mysql.query(checkSql, [ '%' + namePingYin + '%', projectId ])
-    // 如果发现重名的图标，自动拼接序号
-    if (has.length) {
-      namePingYin += `-${has.length}`
-    }
     await mysql.query(insertSql, [
       content,
-      'icon-' + namePingYin,
+      name,
       filename,
       projectId,
       namespace
@@ -114,10 +107,9 @@ export default class Icons extends Service {
     }, 100)
   }
   // 获取当前所有图标的hash值
-  private async getHash (list) {
+  private async getHash (str): Promise<string> {
     const hash = crypto.createHash('sha256')
-    const svgStr = list.map(item => item.id).join('')
-    hash.write(svgStr)
+    hash.write(str)
     hash.end()
     return new Promise(resolve => {
       hash.on('readable', () => {
