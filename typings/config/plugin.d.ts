@@ -18,6 +18,8 @@ import 'egg-mysql';
 import 'egg-validate';
 import 'egg-redis';
 import 'egg-session-redis';
+import 'egg-passport';
+import 'egg-passport-local';
 import { EggPluginItem } from 'egg';
 declare module 'egg' {
   interface EggPlugin {
@@ -37,5 +39,7 @@ declare module 'egg' {
     validate?: EggPluginItem;
     redis?: EggPluginItem;
     sessionRedis?: EggPluginItem;
+    passport?: EggPluginItem;
+    passportLocal?: EggPluginItem;
   }
 }

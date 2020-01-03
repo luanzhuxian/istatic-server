@@ -7,11 +7,12 @@ module.exports = () => {
       switch (status) {
         case 422:
           e.devMessage = e.errors
-          e.message = '参数校验失败'
           break
         case 405:
           e.devMessage = e.message
           e.message = 'Method Not Allowed'
+          break
+        case 401:
           break
         case 500:
           e.devMessage = e.message

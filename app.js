@@ -1,6 +1,4 @@
-// const proConfig = require('./config/config.prod')
-// const fs = require('fs')
-// const path = require('path')
+const LocalStrategy = require('passport-local').Strategy;
 class AppBootHook {
   constructor(app) {
     this.app = app;
@@ -18,7 +16,32 @@ class AppBootHook {
   async didLoad() {
     // 所有的配置已经加载完毕
     // 可以用来加载应用自定义的文件，启动自定义的服务
-    await this.app.runSchedule('update-oss');
+    const { app } = this
+    // 挂载 strategy
+    app.passport.use(new LocalStrategy({
+      passReqToCallback: true,
+    }, (req, username, password, done) => {
+      console.log(username, password);
+      // format user
+      const user = {
+        provider: 'local',
+        username,
+        password,
+      };
+      app.passport.doVerify(req, user, done);
+    }));
+
+    // 处理用户信息
+    app.passport.verify(async (ctx, user) => {
+      console.log(user)
+    });
+    app.passport.serializeUser(async (ctx, user) => {
+      console.log(user)
+    });
+    app.passport.deserializeUser(async (ctx, user) => {
+      console.log(user)
+    });
+    await app.runSchedule('update-oss');
   }
 
   async willReady() {
@@ -28,21 +51,6 @@ class AppBootHook {
 
   async didReady() {
     // 应用已经启动完毕
-    this.app.validator.addRule('isSvg', (rule, value) => {
-      if (value !== 'image/svg+xml') {
-        return '仅支持svg文件'
-      }
-    })
-    // if (!res.some(item => item.Tables_in_pl_icon === 'icons')) {
-    //     // 数据库还未初始化
-    //     let sql = fs.readFileSync(path.join(__dirname, './database/init.sql'), { encoding: 'utf8' })
-    //     try {
-    //         let res = await this.app.mysql.query(sql)
-    //         console.log(res)
-    //     } catch (e) {
-    //         console.log(e)
-    //     }
-    // }
   }
 
   async serverDidReady() {
