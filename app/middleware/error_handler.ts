@@ -12,7 +12,15 @@ module.exports = () => {
           e.devMessage = e.message
           e.message = 'Method Not Allowed'
           break
+        case 409:
+          e.devMessage = e.message
+          e.message = '文件名重复'
+          break
         case 401:
+          break
+        case 403:
+          break
+        case 400:
           break
         case 500:
           e.devMessage = e.message

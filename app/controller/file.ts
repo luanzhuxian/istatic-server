@@ -1,10 +1,10 @@
 import { Controller } from 'egg'
 import moment = require("moment")
-import mime = require("mime")
-import uuidv4 = require("uuid/v4")
-import fs = require("fs")
-import path = require("path")
-
+// import mime = require("mime")
+// import uuidv4 = require("uuid/v4")
+// import fs = require("fs")
+// import path = require("path")
+let hasDelete = false
 export default class FileController extends Controller {
   prefixe: string = 'static/'
   /**
@@ -34,6 +34,7 @@ export default class FileController extends Controller {
           delete item.storageClass
           delete item.owner
           item.url = 'https://mallcdn.youpenglai.com/' + item.name
+          item.key = item.name
           item.name = item.name.split('/').splice(-1, 1).join('')
           item.lastModified = moment(item.lastModified).format('YYYY-MM-DD HH:mm:ss')
           return item
@@ -67,19 +68,19 @@ export default class FileController extends Controller {
       if (!part.filename) {
         return
       }
-      const filename = uuidv4()
-      const ext = mime.getExtension(part.mimeType)
-      console.log(dir + filename + '.' + ext)
+      const filename = part.filename
       try {
-        const result = await this.app.ossClient.putStream(dir + filename + '.' + ext, part)
+        const result = await this.app.ossClient.putStream(dir + filename, part, { headers: { 'x-oss-forbid-overwrite': true } })
         delete result.res
         results.success.push(result)
       } catch (err) {
-        part.pipe(fs.createWriteStream(path.join(__dirname, `../../temp/${filename}.${ext}`)))
-        results.failing.push({
-          message: err.message,
-          file: part.filename
-        })
+        part.resume() // 消耗掉文件流
+        if (err.message.indexOf('already exists') > -1) {
+          ctx.status = 409
+        } else {
+          ctx.status = 500
+        }
+        throw err
       }
       part = await parts()
     }
@@ -109,6 +110,27 @@ export default class FileController extends Controller {
         ctx.status = 500
         throw err
       }
+    }
+  }
+  // 删除文件
+  async destroy (ctx) {
+    if (hasDelete) {
+      ctx.status = 403
+      throw new Error('删除太频繁了')
+    }
+    setTimeout(() => {
+      hasDelete = false
+    }, 10000)
+    try {
+      const filename = ctx.params.id
+      await this.app.ossClient.delete(filename)
+      ctx.status = 200
+      return 1
+    } catch (e) {
+      ctx.status = 500
+      throw e
+    } finally {
+      hasDelete = true
     }
   }
   // 下载文件
