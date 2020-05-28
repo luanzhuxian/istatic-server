@@ -4,7 +4,7 @@ export default () => {
   const config = {} as PowerPartial<EggAppConfig>
   config.mysql = {
     client: {
-      host: '192.168.130.33',
+      host: '192.168.130.196',
       port: '3306',
       user: 'root',
       password: '123456',
@@ -17,7 +17,7 @@ export default () => {
   }
   config.redis = {
     client: {
-      host: '192.168.130.33',   // Redis
+      host: '192.168.130.196',   // Redis
       port: 6379,          // Redis port
       password: '',
       db: 0

@@ -66,7 +66,7 @@ export default class Porject extends Controller {
       ctx.status = 200
       return res
     } catch (e) {
-      ctx.status = 500
+      ctx.status = ctx.status || 500
       throw e
     }
   }
@@ -92,7 +92,7 @@ export default class Porject extends Controller {
       ctx.status = 200
       return true
     } catch (e) {
-      ctx.status = 500
+      ctx.status = ctx.status || 500
       throw e
     }
   }

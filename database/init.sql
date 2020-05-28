@@ -29,6 +29,7 @@ CREATE TABLE icons (
 	namespaec VARCHAR(50),	# 命名空间
 	create_time datetime NOT NULL DEFAULT NOW(),
 	update_time datetime NOT NULL DEFAULT NOW(),
+
 	visible INT NOT NULL DEFAULT 1 # 是否显示 0 1
 );
 

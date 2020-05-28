@@ -30,6 +30,10 @@ export default class Icons extends Service {
   }
 
   public async update (data: ProjectData) {
+    if (data.id === 'has_removed') {
+      this.ctx.status = 403
+      throw new Error('不可编辑')
+    }
     try {
       const mysql = this.app.mysql
       const SQL = `UPDATE project SET project_name=?, update_time=? WHERE id=?`
@@ -51,8 +55,15 @@ export default class Icons extends Service {
   }
 
   public async destroy (id) {
+    if (id === 'has_removed') {
+      this.ctx.status = 403
+      throw new Error('不可删除')
+    }
     try {
-      return this.app.mysql.query('DELETE FROM project WHERE id = ?', [ id ])
+      return Promise.all([
+        this.app.mysql.query('DELETE FROM project WHERE id = ?', [ id ]),
+        this.app.mysql.query(`UPDATE icons SET project_id = 'has_removed' WHERE project_id = ?`, [ id ])
+      ])
     } catch (e) {
       throw e
     }
