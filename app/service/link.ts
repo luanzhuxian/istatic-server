@@ -1,11 +1,8 @@
 import { Service } from 'egg'
-import Oss = require("ali-oss")
-import { getSTS } from '../../apis/oss'
-import fs = require('fs')
-import path = require('path')
 // import cheerio = require('cheerio')
 import uuidv1 = require('uuid/v1')
 import crypto = require('crypto')
+import { Readable } from "stream"
 
 export default class Icons extends Service {
   public async index (projectId) {
@@ -26,24 +23,18 @@ export default class Icons extends Service {
     // 将拼接在一起的图标修改为精灵
     const spirit = svgs.map(item => item.content).join('').replace(/svg/g, 'symbol')
     // 生成执行js文件
-    const svgScript = this.createSvgScript(spirit)
+    const svgScript = Buffer.from(this.createSvgScript(spirit))
     try {
-      const { data } = await getSTS()
-      const { accessKeySecret, accessKeyId, securityToken } = data.result.credentials
       const filename = uuidv1()
-      const filePath = path.join(__dirname, `../../temp/${filename}.js`)
-      await fs.promises.writeFile(filePath, svgScript, { encoding: 'utf8' })
-      const stream = fs.createReadStream(filePath)
-      const client = new Oss({
-        region: 'oss-cn-hangzhou',
-        // 云账号AccessKey有所有API访问权限，建议遵循阿里云安全最佳实践，部署在服务端使用RAM子账号或STS，部署在客户端使用STS。
-        accessKeyId,
-        accessKeySecret,
-        stsToken: securityToken,
-        bucket: 'penglai-weimall'
+      const fileStream = new Readable({
+        autoDestroy: true,
+        read () {
+          this.push(svgScript)
+          this.push(null)
+        }
       })
-      const res = await client.putStream(`pl-icons/${filename}.js`, stream)
-      await fs.promises.unlink(filePath)
+      const client = this.app.ossClient
+      const res = await client.putStream(`pl-icons/${filename}.js`, fileStream)
       const url = `https://mallcdn.youpenglai.com/${res.name}`
       // 存储url
       await this.saveLink(url, svgs, projectId)
@@ -51,6 +42,7 @@ export default class Icons extends Service {
         key: res.name,
         url
       }
+      // return filename
     } catch (e) {
       throw e
     }
