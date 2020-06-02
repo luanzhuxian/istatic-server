@@ -20,10 +20,8 @@ export default class UpdateCache extends Subscription {
       accessKeyId: 'LTAIDGIAtLNBANQ5',
       accessKeySecret: 'AnzFTZL25nddBhaJ4VqrLu9jrY5Hjk',
       bucket: 'penglai-weimall',
-      // OSS域名
-      endpoint: 'mallcdn.youpenglai.com',
       // 是否使用https
-      secure: true
+      secure: false
     })
   }
 }
