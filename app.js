@@ -1,3 +1,4 @@
+const OSS = require("ali-oss")
 const LocalStrategy = require('passport-local').Strategy;
 class AppBootHook {
   constructor(app) {
@@ -51,6 +52,15 @@ class AppBootHook {
 
   async didReady() {
     // 应用已经启动完毕
+    this.app.ossClient = new OSS({
+      region: 'oss-cn-hangzhou',
+      // 云账号AccessKey有所有API访问权限，建议遵循阿里云安全最佳实践，部署在服务端使用RAM子账号或STS，部署在客户端使用STS。
+      accessKeyId: 'LTAIp2d1lrbhVlo6',
+      accessKeySecret: 'AnzFTZL25nddBhaJ4VqrLu9jrY5Hjk',
+      bucket: 'penglai-weimall',
+      // 是否使用https
+      secure: false
+    })
   }
 
   async serverDidReady() {
