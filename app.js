@@ -42,7 +42,6 @@ class AppBootHook {
     app.passport.deserializeUser(async (ctx, user) => {
       console.log(user)
     });
-    await app.runSchedule('update-oss');
   }
 
   async willReady() {
