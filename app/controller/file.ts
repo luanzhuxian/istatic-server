@@ -1,5 +1,16 @@
 import { Controller } from 'egg'
 import moment = require("moment")
+import OSS = require("ali-oss")
+const client = new OSS({
+  region: 'oss-cn-hangzhou',
+  // 云账号AccessKey有所有API访问权限，建议遵循阿里云安全最佳实践，部署在服务端使用RAM子账号或STS，部署在客户端使用STS。
+  accessKeyId: 'LTAIp2d1lrbhVlo6',
+  accessKeySecret: 'AnzFTZL25nddBhaJ4VqrLu9jrY5Hjk',
+  bucket: 'penglai-weimall',
+  // 是否使用https
+  secure: false
+})
+
 // import mime = require("mime")
 // import uuidv4 = require("uuid/v4")
 // import fs = require("fs")
@@ -7,6 +18,9 @@ import moment = require("moment")
 let hasDelete = false
 export default class FileController extends Controller {
   prefixe: string = 'static/'
+  constructor(params) {
+    super(params)
+  }
   /**
    * 获取文件列表
    * 文件默认目录：static
@@ -16,7 +30,6 @@ export default class FileController extends Controller {
     try {
       let prefixe = ctx.request.query.prefixe
       prefixe = prefixe ? `static/${prefixe}` : 'static/'
-      const client = this.app.ossClient
       const result = await client.list({
         prefix: prefixe,
         delimiter: '/',
@@ -70,7 +83,7 @@ export default class FileController extends Controller {
       }
       const filename = part.filename
       try {
-        const result = await this.app.ossClient.putStream(dir + filename, part, { headers: { 'x-oss-forbid-overwrite': true } })
+        const result = await client.putStream(dir + filename, part, { headers: { 'x-oss-forbid-overwrite': true } })
         delete result.res
         results.success.push(result)
       } catch (err) {
@@ -90,8 +103,6 @@ export default class FileController extends Controller {
   // 新建文件夹
   async createDir (ctx) {
     const dir = this.prefixe + ctx.query.path + ctx.params.dirname + '/'
-    const client = this.app.ossClient
-    console.log(dir)
     try {
       const { res: exist } = await client.get(dir)
       if (exist.status === 200) {
@@ -123,7 +134,7 @@ export default class FileController extends Controller {
     }, 10000)
     try {
       const filename = ctx.params.id
-      await this.app.ossClient.delete(filename)
+      await client.delete(filename)
       ctx.status = 200
       return 1
     } catch (e) {
