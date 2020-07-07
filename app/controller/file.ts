@@ -7,8 +7,6 @@ const client = new OSS({
   accessKeyId: 'LTAIp2d1lrbhVlo6',
   accessKeySecret: 'AnzFTZL25nddBhaJ4VqrLu9jrY5Hjk',
   bucket: 'penglai-weimall',
-  cname: true,
-  endpoint: 'mallcdn.youpenglai.com',
   // 是否使用https
   secure: false
 })
