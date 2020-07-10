@@ -29,6 +29,7 @@ class AppBootHook {
         username,
         password,
       };
+      // let passport do verify and call verify hook
       app.passport.doVerify(req, user, done);
     }));
 

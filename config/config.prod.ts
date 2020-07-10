@@ -17,8 +17,8 @@ export default () => {
   }
   config.redis = {
     client: {
-      port: 6379,          // Redis port
       host: '192.168.130.196',   // Redis host
+      port: 6379,          // Redis port
       password: '',
       db: 0
     },

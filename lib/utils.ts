@@ -1,14 +1,15 @@
 import RStream = require("readable-stream")
-import uuidv4 = require("uuid/v4")
+// import uuidv4 = require("uuid/v4")
 
 /**
- * 将可读流装为promise
+ * 将可读流装为 promise
  * @param readStream {ReadableStream}
  * @return {Promise}
  */
 export function readStreamPromise (readStream: RStream): Promise<Buffer> {
   const chunks: Buffer[] = []
   let chunkLength: number = 0
+
   return new Promise((resolve, reject) => {
     readStream.on('data', (chunk: Buffer) => {
       chunks.push(chunk)
@@ -22,6 +23,7 @@ export function readStreamPromise (readStream: RStream): Promise<Buffer> {
     })
   })
 }
-export function uuidv4() {
-  return uuidv4().replace(/\-/g, '').replace(/\d/g, '')
-}
+
+// export function uuidv4() {
+//   return uuidv4().replace(/\-/g, '').replace(/\d/g, '')
+// }

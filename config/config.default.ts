@@ -11,7 +11,7 @@ export default (appInfo: EggAppInfo) => {
         // headerName: 'token', // Session 中的字段名，默认为 csrfToken
         // queryName: 'csrfToken', // 通过 query 传递 CSRF token 的默认字段为 csrfToken
         // bodyName: 'csrfToken', // 通过 body 传递 CSRF token 的默认字段为 csrfToken
-        // },
+        // }
     },
     bodyParser: {
       jsonLimit: '1mb',
@@ -64,6 +64,6 @@ export default (appInfo: EggAppInfo) => {
   // the return config will combines to EggAppConfig
   return {
     ...config,
-    ...bizConfig,
+    ...bizConfig
   }
 }
