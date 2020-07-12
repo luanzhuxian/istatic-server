@@ -1,4 +1,4 @@
-use i-static;
+use istatic;
 
 
 # 用户表
