@@ -1,12 +1,3 @@
-/*
- * @Author: your name
- * @Date: 2020-07-11 15:31:53
- * @LastEditTime: 2020-07-11 16:32:47
- * @LastEditors: Please set LastEditors
- * @Description: In User Settings Edit
- * @FilePath: /istatic-server/config/config.local.ts
- */
-
 import { EggAppConfig, PowerPartial } from "egg";
 
 export default () => {

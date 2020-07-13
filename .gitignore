@@ -1,10 +1,14 @@
 logs/
-npm-debug.log
 node_modules/
 coverage/
-.idea/
-run/
 logs/
+run/
+.idea/
+npm-debug.log
+yarn-error.log
+.DS_Store
+.vscode
+*.swp
 *.lock
 !.autod.conf.js
 
