@@ -55,8 +55,10 @@ class AppBootHook {
     this.app.ossClient = new OSS({
       region: 'oss-cn-hangzhou',
       // 云账号AccessKey有所有API访问权限，建议遵循阿里云安全最佳实践，部署在服务端使用RAM子账号或STS，部署在客户端使用STS。
-      accessKeyId: 'LTAIp2d1lrbhVlo6',
-      accessKeySecret: 'AnzFTZL25nddBhaJ4VqrLu9jrY5Hjk',
+      // accessKeyId: 'LTAIp2d1lrbhVlo6',
+      // accessKeySecret: 'AnzFTZL25nddBhaJ4VqrLu9jrY5Hjk',
+      accessKeyId: 'STS.NUAQb4FfGVekNKmu25nkwn1rP',
+      accessKeySecret: '3Ef2C8sdhDsCiXsHBpeGauRRrF7y5fRneraDu1VqVh9D',
       bucket: 'penglai-weimall',
       // 是否使用https
       secure: false
