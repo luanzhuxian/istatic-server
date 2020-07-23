@@ -1,6 +1,6 @@
 import { Controller } from 'egg'
-import moment = require("moment")
-import OSS = require("ali-oss")
+import moment = require('moment')
+import OSS = require('ali-oss')
 
 const client = new OSS({
   region: 'oss-cn-hangzhou',
@@ -29,7 +29,7 @@ export default class FileController extends Controller {
 
   // list(query[, options])
   // List objects in the bucket.
-  // 
+
   // parameters:
   // [query] {Object} query parameters, default is null
   // - [prefix] {String} search object using prefix key
@@ -118,7 +118,7 @@ export default class FileController extends Controller {
   //   - body {String} The value of the request body when a callback is initiated, for example, key=$(key)&etag=$(etag)&my_var=$ (x:my_var).
   //   - [contentType] {String} The Content-Type of the callback requests initiatiated, It supports application/x-www-form-urlencoded  and application/json, and the former is the default value.
   //   - [customValue] {Object} Custom parameters are a map of key-values
-  // - [headers] {Object} extra headers, detail see RFC 2616
+  //   - [headers] {Object} extra headers, detail see RFC 2616
   //   - 'Cache-Control' cache control for download, e.g.: Cache-Control: public, no-cache
   //   - 'Content-Disposition' object name for download, e.g.: Content-Disposition: somename
   //   - 'Content-Encoding' object content encoding for download, e.g.: Content-Encoding: gzip
@@ -137,7 +137,52 @@ export default class FileController extends Controller {
   public async create (ctx) {
     // egg-multipart，use ctx.multipart() to got file stream 解析表单数据
     const parts = ctx.multipart()
+    // `static/${prefixe}`
     const dir = this.prefixe + ctx.request.query.dir
+
+
+    // part:
+    // FileStream {
+    //   _readableState: ReadableState {
+    //     objectMode: false,
+    //     highWaterMark: 16384,
+    //     buffer: BufferList { head: [Object], tail: [Object], length: 1 },
+    //     length: 64709,
+    //     pipes: null,
+    //     pipesCount: 0,
+    //     flowing: null,
+    //     ended: false,
+    //     endEmitted: false,
+    //     reading: false,
+    //     sync: true,
+    //     needReadable: false,
+    //     emittedReadable: false,
+    //     readableListening: false,
+    //     resumeScheduled: false,
+    //     paused: true,
+    //     emitClose: true,
+    //     autoDestroy: false,
+    //     destroyed: false,
+    //     defaultEncoding: 'utf8',
+    //     awaitDrain: 0,
+    //     readingMore: false,
+    //     decoder: null,
+    //     encoding: null
+    //   },
+    //   readable: true,
+    //   _events: [Object: null prototype] { end: [Function] },
+    //   _eventsCount: 1,
+    //   _maxListeners: undefined,
+    //   truncated: false,
+    //   _read: [Function],
+    //   fieldname: 'file0',
+    //   filename: 'wwec2020.jpg',
+    //   encoding: '7bit',
+    //   transferEncoding: '7bit',
+    //   mime: 'image/jpeg',
+    //   mimeType: 'image/jpeg'
+    // }
+    
     // 每次返回一个表单的 key value，返回的是 array（非文件） 或 stream（文件） 
     let part = await parts()
 
@@ -203,6 +248,7 @@ export default class FileController extends Controller {
   // - rt {Number} request total use time (ms)
 
 
+
   // put(name, file[, options])
   // Add an object to the bucket.
 
@@ -219,7 +265,7 @@ export default class FileController extends Controller {
   //   - body {String} The value of the request body when a callback is initiated, for example, key=$(key)&etag=$(etag)&my_var=$(x:my_var).
   //   - [contentType] {String} The Content-Type of the callback requests initiatiated, It supports application/x-www-form-urlencoded and application/json, and the former is the default value.
   //   - [customValue] {Object} Custom parameters are a map of key-values
-  // - [headers] {Object} extra headers
+  //   - [headers] {Object} extra headers
   //   - 'Cache-Control' cache control for download, e.g.: Cache-Control: public, no-cache
   //   - 'Content-Disposition' object name for download, e.g.: Content-Disposition: somename
   //   - 'Content-Encoding' object content encoding for download, e.g.: Content-Encoding: gzip
@@ -282,7 +328,7 @@ export default class FileController extends Controller {
   // - rt {Number} request total use time (ms)
 
   // 删除文件
-  async destroy (ctx) {
+  public async destroy (ctx) {
     if (hasDelete) {
       ctx.status = 403
       throw new Error('删除太频繁了')
@@ -290,11 +336,13 @@ export default class FileController extends Controller {
     setTimeout(() => {
       hasDelete = false
     }, 10000)
+
     try {
+      // TODO:
       const filename = ctx.params.id
       await client.delete(filename)
       ctx.status = 200
-      return 1
+      return true
     } catch (e) {
       ctx.status = 500
       throw e

@@ -23,7 +23,7 @@ const plugin: EggPlugin = {
     enable: true,
     package: 'egg-passport',
   },
-  // 采用用户名+密码鉴权模式（Strategy）
+  // 采用用户名 + 密码鉴权模式（Strategy）
   passportLocal: {
     enable: true,
     package: 'egg-passport-local'

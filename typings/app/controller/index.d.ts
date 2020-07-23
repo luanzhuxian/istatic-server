@@ -2,6 +2,7 @@
 // Do not modify this file!!!!!!!!!
 
 import 'egg';
+import ExportConvert from '../../../app/controller/convert';
 import ExportFile from '../../../app/controller/file';
 import ExportIcons from '../../../app/controller/icons';
 import ExportLink from '../../../app/controller/link';
@@ -10,6 +11,7 @@ import ExportUser from '../../../app/controller/user';
 
 declare module 'egg' {
   interface IController {
+    convert: ExportConvert;
     file: ExportFile;
     icons: ExportIcons;
     link: ExportLink;

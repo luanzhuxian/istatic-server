@@ -7,11 +7,15 @@ export default (app: Application) => {
   router.resources('icons', '/api/icons', controller.icons)
   router.resources('file', '/api/file', controller.file)
   router.post('/api/create/dir/:dirname', controller.file.createDir)
-
   router.resources('user', '/api/user', controller.user)
+
+  // TODO:
   router.post('/api/user/login', app.passport.authenticate('local', {
     successRedirect: '/api/user?pass=1',
     failureRedirect: '/api/user?pass=2'
   }))
   // router.resources('download_file', '/api/file/download', controller.download)
+
+  router.resources('convert', '/api/convert', controller.convert)
+  router.post('/api/convert/save', controller.convert.save)
 }

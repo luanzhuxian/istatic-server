@@ -60,6 +60,7 @@ export default class Icons extends Service {
     // 生成唯一哈希值，避免名字重复，如 icon-pdf-887fd
     let hash = await this.getHash(content)
     hash = hash.substring(0, 5)
+    
     // 如果文件名是中文的，转成拼音
     const namePingYin = pinyin(filename, {
       heteronym: false,
@@ -151,6 +152,7 @@ export default class Icons extends Service {
         // 哈希流只会生成一个元素。
         const data = hash.read()
         if (data) {
+          // buffer.toString([encoding[, start[, end]]])
           resolve(data.toString('hex'))
         }
       })

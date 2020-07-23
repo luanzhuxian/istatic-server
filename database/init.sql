@@ -1,4 +1,4 @@
-use istatic;
+-- use istatic;
 
 
 # 用户表
@@ -36,13 +36,13 @@ CREATE TABLE icons (
 
 # 图标打包后的链接
 CREATE TABLE link (
- id VARCHAR(32) PRIMARY KEY NOT NULL,
- project_id VARCHAR(32),
- css VARCHAR(150),
- js VARCHAR(150),
- create_time datetime NOT NULL DEFAULT NOW(),
- hash VARCHAR(100)
-)
+	id VARCHAR(32) PRIMARY KEY NOT NULL,
+	project_id VARCHAR(32),
+	css VARCHAR(150),
+	js VARCHAR(150),
+	create_time datetime NOT NULL DEFAULT NOW(),
+	hash VARCHAR(100)
+);
 
 # 操作日志
 #CREATE TABLE logs (
@@ -51,4 +51,14 @@ CREATE TABLE link (
 #	type INT NOT NULL, # 操作类型：0 新增 1 删除 2 修改
 #	target_id VARCHAR(32), # 操作目标的id
 #	update_time datetime NOT NULL DEFAULT NOW() # 操作时间
-#)
+#);
+
+CREATE TABLE images (
+	id VARCHAR(32) PRIMARY KEY NOT NULL,
+	image_name VARCHAR(100),
+	content LONGTEXT,
+	create_time datetime NOT NULL DEFAULT NOW(),
+	update_time datetime NOT NULL DEFAULT NOW(),
+	visible INT NOT NULL DEFAULT 1
+);
+

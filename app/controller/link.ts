@@ -11,9 +11,14 @@ export default class Porject extends Controller {
       }
     }
 
+    // 没有 project 的时候 projectId 可能为空
     if (!ctx.query.projectId) {
       ctx.status = 200
-      return ''
+      return {
+        id: '',
+        link: '',
+        create_time: ''
+      }
     }
 
     try {

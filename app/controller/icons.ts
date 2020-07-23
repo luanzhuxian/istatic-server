@@ -3,7 +3,7 @@ import { Controller } from 'egg'
 export default class IconsController extends Controller {
   // 获取图标
   public async index(ctx) {
-    console.log('session', ctx.session)
+    // console.log('session', ctx.session)
 
     try {
       const res = await ctx.service.icons.getList(ctx.query)
@@ -47,7 +47,8 @@ export default class IconsController extends Controller {
             throw new Error('参数错误')
           }
           data[part[0]] = part[1]
-        } else if (part) {
+        // } else if (part) {
+        } else {
           // part 是上传的文件流
 
           // otherwise, it's a stream

@@ -30,6 +30,7 @@ export default (appInfo: EggAppInfo) => {
     errorHandler: {
       match: '/api',
     },
+    // 默认值为 SAMEORIGIN，只允许同域页面作为 iframe 嵌入，防止 iframe 钓鱼
     xframe: {
       enable: false,
     },
@@ -47,6 +48,7 @@ export default (appInfo: EggAppInfo) => {
     },
     passportLocal: {
       // 用户名密码的字段
+      // Both fields define the name of the properties in the POST body that are sent to the server.
       usernameField: 'account',
       passwordField: 'password'
     }
