@@ -18,7 +18,7 @@ export default class ConvertService extends Service {
         }
     }
 
-    public async create (file, encoding: string) {
+    public async create (file, encoding: string = 'base64') {
         try {
             const { filename, mime } = file
             const selectSQL = `SELECT * FROM images WHERE image_name = ?`
@@ -82,7 +82,35 @@ export default class ConvertService extends Service {
             console.warn('*********** error ************', error)
             throw error
         }
+    }
 
+    public async delete (id) {
+        const SQL = 'DELETE FROM images WHERE id = ?'
 
+        try {
+            const res = await this.app.mysql.query(SQL, [ id ])
+            if (res.affectedRows) {
+                return true
+            }
+            return null
+        } catch (error) {
+            throw error
+        }
+    }
+
+    public async find (id) {
+        const SQL = `
+            SELECT *,
+            image_name as name,
+            DATE_FORMAT(create_time, '%Y-%m-%d %T') as createTime,
+            DATE_FORMAT(update_time, '%Y-%m-%d %T') as updateTime
+            FROM images WHERE id = ?
+        `
+        try {
+            const [current] = await this.app.mysql.query(SQL, [ id ])
+            return current
+        } catch (error) {
+            throw error
+        }
     }
 }

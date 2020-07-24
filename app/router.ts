@@ -17,5 +17,5 @@ export default (app: Application) => {
   // router.resources('download_file', '/api/file/download', controller.download)
 
   router.resources('convert', '/api/convert', controller.convert)
-  router.post('/api/convert/save', controller.convert.save)
+  router.post('/api/convert/save/:id', controller.convert.save)
 }

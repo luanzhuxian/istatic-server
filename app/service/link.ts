@@ -1,9 +1,25 @@
 import { Service } from 'egg'
-import { Readable } from "stream"
+import { Readable, Duplex } from "stream"
 import uuidv1 = require('uuid/v1')
 import crypto = require('crypto')
 // import cheerio = require('cheerio')
 // import fs = require('fs')
+
+// Readable – 可读操作
+function bufferToReadStream (buffer) {  
+  const stream = new Readable()
+  stream.push(buffer)
+  stream.push(null)
+  return stream
+}
+
+// Duplex – 可读可写操作
+function bufferToDuplexStream (buffer) {  
+  const stream = new Duplex()
+  stream.push(buffer)
+  stream.push(null)
+  return stream
+}
 
 export default class Icons extends Service {
   public async index (projectId) {
@@ -37,9 +53,6 @@ export default class Icons extends Service {
    * 生成在线链接
    */
   public async create (projectId) {
-    const hash = crypto.createHash('sha256')
-    console.log(hash)
-
     const SQL = `
       SELECT content, id 
       FROM icons 
@@ -87,8 +100,8 @@ export default class Icons extends Service {
     // ]
     
     const svgs = await this.app.mysql.query(SQL, [ projectId ])
-    this.test1(svgs)
-    this.test2(svgs)
+    // this.test1(svgs)
+    // this.test2(svgs)
 
     // TODO:
     // 将拼接在一起的图标修改为精灵
@@ -177,10 +190,24 @@ export default class Icons extends Service {
     //   _eventsCount: 0,
     //   _maxListeners: undefined
     // }
+
+
+    // options <Object>
+
+    // highWaterMark <number> 从底层资源读取数据并存储在内部缓冲区中的最大字节数。 默认值: 16384 (16KB), 对象模式的流默认为 16。
+    // encoding <string> 如果指定了，则使用指定的字符编码将 buffer 解码成字符串。 默认值: null。
+    // objectMode <boolean> 流是否可以是一个对象流。 也就是说 stream.read(n) 会返回对象而不是 Buffer。 默认值: false。
+    // emitClose <boolean> 流被销毁后是否应该触发 'close'。默认值: true。
+    // read <Function> 对 stream._read() 方法的实现。
+    // destroy <Function> 对 stream._destroy() 方法的实现。
+    // autoDestroy <boolean> 流是否应在结束后自动调用 .destroy()。默认值: true。
     
     try {
       const filename = uuidv1()
       // TODO:
+      // Readable - 可读取数据的流（例如 fs.createReadStream()）
+      // stream.read 是对 readable._read() 方法的实现，在该方法中手动添加数据到 Readable 对象的读缓冲
+      // 被调用时，如果从资源读取到数据，则需要开始使用 stream.push(chunk) 数据会被缓冲在可读流中，如果流的消费者没有调用 stream.read()，则数据会保留在内部队列中直到被消费。
       const fileStream = new Readable({
         autoDestroy: true,
         read () {
@@ -189,6 +216,14 @@ export default class Icons extends Service {
           this.push(null)
         }
       })
+
+      // TODO: 和上面的区别
+      // const rs = fs.createReadStream(svgScript)
+      const rs = bufferToReadStream(svgScript)
+      const ds = bufferToDuplexStream(svgScript)
+      console.log(1111111111111111, fileStream)
+      console.log(2222222222222222, rs)
+      console.log(3333333333333333, ds)
 
       // url: https://mallcdn.youpenglai.com/pl-icons/66e6a1f0-c032-11ea-871e-a1f8066f6847.js
       const res = await this.app.ossClient.putStream(`pl-icons/${filename}.js`, fileStream)
@@ -225,9 +260,10 @@ export default class Icons extends Service {
     const svgIds = svgs.map(item => item.id).join('')
 
     return new Promise((resolve, reject) => {
-      // hash 实现了 Readable 接口，监听 readable 事件，事件在可读流准备好数据的时候触发。在写入新的数据流，或加密已经完成调用 end 方法后执行
+      // hash 实现了 Readable 接口，监听 readable 事件，当可读流中有数据可读取时，就会触发 'readable' 事件。 在写入 write 新的数据流，当到达流数据的尽头时， 'readable' 事件也会触发，但是在 'end' 事件之前触发。
+      // 'readable' 事件表明流有新的动态：要么有新的数据，要么到达流的尽头。 对于前者，stream.read() 会返回可用的数据。 对于后者，stream.read() 会返回 null。
       hash.on('readable', async () => {
-        // TODO: read 方法来查看加密的内容，读取已 hash 加密的内容，哈希流只会生成一个元素。
+        // TODO: 有数据可读取，read 方法来查看加密的内容，读取已经 hash 加密的内容，返回的数据是 Buffer 对象，哈希流只会生成一个元素。
         const data = hash.read()
         if (data) {
           const SQL = 'INSERT INTO link (id, js, hash, project_id) VALUES (?,?,?,?)'

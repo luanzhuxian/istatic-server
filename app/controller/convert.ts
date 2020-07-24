@@ -65,42 +65,72 @@ export default class ConvertController extends Controller {
   }
 
   // 删除文件
-  // public async destroy (ctx) {
-  //   try {
-  //     // TODO:
-  //     const filename = ctx.params.id
-  //     await client.delete(filename)
-  //     ctx.status = 200
-  //     return true
-  //   } catch (e) {
-  //     ctx.status = 500
-  //     throw e
-  //   }
-  // }
-
-  public async save (ctx) {
+  public async destroy (ctx) {
     const rule = {
-      name: {
+      id: {
         type: 'string',
         require: true,
-        max: 100,
-        min: 0
-      },
-      content: {
-        type: 'string',
-        require: true,
-        min: 0
+        max: 32
       }
     }
 
     try {
-      await ctx.validate(rule, ctx.request.body)
+      await ctx.validate(rule, ctx.params)
     } catch (e) {
       ctx.status = 422
       throw e
     }
 
-    const { name, content } = ctx.request.body
+    try {
+      const { id } = ctx.params
+
+      const res = await ctx.service.convert.find(id)
+      if (!res) {
+        ctx.status = 500
+        throw new Error('找不到该资源')
+      }
+
+      await ctx.service.convert.delete(id)
+
+      const filePath = path.resolve(__dirname, '../public', res.name)
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath)
+      }
+
+      ctx.status = 200
+      return true
+    } catch (e) {
+      ctx.status = 500
+      throw e
+    }
+  }
+
+  // 本地保存文件
+  public async save (ctx) {
+    const rule = {
+      id: {
+        type: 'string',
+        require: true,
+        max: 32
+      }
+    }
+
+    try {
+      await ctx.validate(rule, ctx.params)
+    } catch (e) {
+      ctx.status = 422
+      throw e
+    }
+
+    const { id } = ctx.params
+    const res = await ctx.service.convert.find(id)
+
+    if (!res) {
+      ctx.status = 500
+      throw new Error('找不到该资源')
+    }
+
+    const { name, content } = res
     const base64Data = content.replace(/^data:image\/\w+;base64,/, '')
     const base64Buffer = new Buffer(base64Data, 'base64')
 

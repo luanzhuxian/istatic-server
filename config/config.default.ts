@@ -14,8 +14,8 @@ export default (appInfo: EggAppInfo) => {
         // }
     },
     bodyParser: {
-      jsonLimit: '1mb',
-      formLimit: '1mb'
+      jsonLimit: '5mb',
+      formLimit: '5mb'
     },
     multipart: {
       mode: 'stream',
