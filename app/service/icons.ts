@@ -10,7 +10,7 @@ export default class Icons extends Service {
   timer: any = 0
 
   public async getList (query) {
-    const { visible, projectId = '' } = query
+    const { projectId = '', visible } = query
     const SQL = `
       SELECT *
       FROM icons
@@ -20,7 +20,7 @@ export default class Icons extends Service {
     // 从 redis 哈希表读取
     const oldHash = await this.app.redis.hget('svg-link', `svg-pro-id-${projectId}`)
     const list = await this.app.mysql.query(SQL, [ projectId, visible ])
-    const newHash = await this.getHash(list.map(item => item.id).join(''))
+    const newHash = await this.generateHash(list.map(item => item.id).join(''))
     
     return {
       changed: list.length && visible === '1' ? oldHash !== newHash : false,
@@ -28,9 +28,29 @@ export default class Icons extends Service {
     }
   }
 
-  public async create (data) {
-    console.log('icon service - create - data', data)
 
+  // {
+  //   file: FileStream {
+  //     _readableState: ReadableState {
+  //       ......
+  //     },
+  //     readable: true,
+  //     _events: [Object: null prototype] { end: [Function] },
+  //     _eventsCount: 1,
+  //     _maxListeners: undefined,
+  //     truncated: false,
+  //     _read: [Function],
+  //     fieldname: 'file0',
+  //     filename: 'pdf.svg',
+  //     encoding: '7bit',
+  //     transferEncoding: '7bit',
+  //     mime: 'image/svg+xml',
+  //     mimeType: 'image/svg+xml'
+  //   },
+  //   projectId: 'fe866070c35411ea9a75e9092ba39518',
+  //   id: ''
+  // }
+  public async create (data) {
     const { mysql } = this.app
     const {
       file,
@@ -42,15 +62,17 @@ export default class Icons extends Service {
     const chunks: Buffer[] = []
     let chunkLen = 0
 
+    // for of 也是消费流的一种方法
     for await (const chunk of file) {
       chunks.push(chunk)
       chunkLen += chunk.length
     }
+    // 转字符串
+    let content = Buffer.concat(chunks, chunkLen).toString('utf8')
 
+    // 封装另一种消费流的方法 on('data')
     // let buffer = await readStreamPromise(file)
     // let content = buffer.toString('utf8')
-
-    let content = Buffer.concat(chunks, chunkLen).toString('utf8')
 
     // console.log('icon service - create - content-1', content)
 
@@ -58,7 +80,7 @@ export default class Icons extends Service {
     const $ = cheerio.load(content) // 解析 html
 
     // 生成唯一哈希值，避免名字重复，如 icon-pdf-887fd
-    let hash = await this.getHash(content)
+    let hash = await this.generateHash(content)
     hash = hash.substring(0, 5)
     
     // 如果文件名是中文的，转成拼音
@@ -73,6 +95,7 @@ export default class Icons extends Service {
     this.removeSvgsAttr($)
     // 增加 id 属性
     $('svg').attr('id', name)
+    // TODO:
     content = $('body').html()
 
     // console.log('icon service - create - content-2', content)
@@ -102,8 +125,7 @@ export default class Icons extends Service {
     const querySql = `SELECT * FROM icons WHERE id = ?`
     const updateSql = `UPDATE icons SET icon_name = ?, icon_desc = ?, content = ?, project_id = ?, namespace = ?, visible = ?, update_time = ? WHERE id = ?`
     
-    const icons = await mysql.query(querySql, [ id ])
-    const icon = icons[0]
+    const [icon] = await mysql.query(querySql, [ id ])
     // body 中包含哪个字段就更新哪个，比如 body = { visible: 0 }，相当于值更新了 visible 字段
     const {
       visible = icon.visible,
@@ -126,9 +148,9 @@ export default class Icons extends Service {
     const querySql = `SELECT project_id FROM icons WHERE id = ?`
     const deleteSql = `DELETE FROM icons WHERE id = ?`
 
-    const current = await this.app.mysql.query(querySql, [ id ])
+    const [current] = await this.app.mysql.query(querySql, [ id ])
     const res = await this.app.mysql.query(deleteSql, [ id ])
-    await this.updateProjectUpdateTime(current[0].project_id)
+    await this.updateProjectUpdateTime(current.project_id)
     return res
   }
 
@@ -142,7 +164,7 @@ export default class Icons extends Service {
   }
 
   // 根据当前图标的内容生成 hash 值
-  private async getHash (str): Promise<string> {
+  private async generateHash (str): Promise<string> {
     const hash = crypto.createHash('sha256')
     hash.write(str)
     hash.end()
@@ -152,7 +174,6 @@ export default class Icons extends Service {
         // 哈希流只会生成一个元素。
         const data = hash.read()
         if (data) {
-          // buffer.toString([encoding[, start[, end]]])
           resolve(data.toString('hex'))
         }
       })

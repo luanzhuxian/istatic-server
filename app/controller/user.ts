@@ -21,8 +21,9 @@ export default class UserController extends Controller {
   }
   // 创建用户（注册）
   async create (ctx) {
-    const body = ctx.request.body
-    const addRule = this.app.validator.addRule
+    const { body } = ctx.request
+    const { addRule } = this.app.validator
+
     addRule('checkPassword', ({}, value) => {
       if (!value) return '请输入密码'
       if (body.password !== body.repeatPassword) return '两次密码必须一致'
@@ -52,6 +53,7 @@ export default class UserController extends Controller {
         type: 'checkNickname'
       }
     }
+
     try {
       ctx.validate(rule, body)
     } catch (e) {
@@ -59,6 +61,7 @@ export default class UserController extends Controller {
       e.message = e.errors[0].message
       throw e
     }
+    
     try {
       const body = await ctx.service.user.create(ctx.request.body)
       ctx.status = 200

@@ -64,7 +64,7 @@ export default class FileController extends Controller {
    */
   public async index (ctx) {
     try {
-      let prefixe = ctx.request.query.prefixe
+      let { prefixe } = ctx.request.query
       prefixe = prefixe ? `static/${prefixe}` : 'static/'
 
       let { objects, prefixes } = await client.list({
@@ -297,8 +297,6 @@ export default class FileController extends Controller {
       }
 
       try {
-        // TODO:
-        // Buffer.from('')
         const { res: info } = await client.put(dir, Buffer.from(''))
         ctx.status = 200
         return info

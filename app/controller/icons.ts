@@ -28,8 +28,6 @@ export default class IconsController extends Controller {
 
     try {
       while (part) {
-        // console.log('part', part)
-
         if (part.length) {
           /**
            * 不是文件流，其它字段（非文件字段时，part 是个数组）
@@ -42,14 +40,16 @@ export default class IconsController extends Controller {
           // console.log('valueTruncated: ' + part[2])
           // console.log('fieldnameTruncated: ' + part[3])
 
-          if (part[0] !== 'projectId' && part[0] !== 'id') {
+          const [field , value] = part
+
+          if (field !== 'projectId' && field !== 'id') {
             ctx.status = 422
             throw new Error('参数错误')
           }
-          data[part[0]] = part[1]
-        // } else if (part) {
+
+          data[field] = value
         } else {
-          // part 是上传的文件流
+          // 是上传的文件流
 
           // otherwise, it's a stream
           // console.log('field: ' + part.fieldname)
