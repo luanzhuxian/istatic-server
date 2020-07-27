@@ -20,7 +20,7 @@ const client = new OSS({
 let hasDelete = false
 
 export default class FileController extends Controller {
-  prefixe: string = 'static/'
+  baseDir: string = 'static/'
 
   constructor(params) {
     super(params)
@@ -64,17 +64,13 @@ export default class FileController extends Controller {
    */
   public async index (ctx) {
     try {
-      let { prefixe } = ctx.request.query
-      prefixe = prefixe ? `static/${prefixe}` : 'static/'
+      const prefix = this.baseDir + ctx.request.query.prefix
 
-      let { objects, prefixes } = await client.list({
-        prefix: prefixe,
-        delimiter: '/',
-        MaxKeys: 1000
-      })
+      // 当前路径下的文件夹 prefixes 和文件 objects
+      let { objects, prefixes } = await client.list({ prefix, delimiter: '/', MaxKeys: 1000 })
 
       if (prefixes) {
-        prefixes = prefixes.map(item => item.replace(prefixe, ''))
+        prefixes = prefixes.map(item => item.replace(prefix, ''))
       }
       if (objects) {
         objects = objects.filter(item => item.size).map(item => {
@@ -90,7 +86,7 @@ export default class FileController extends Controller {
       }
       ctx.status = 200
       return {
-        dir: ctx.request.query.prefixe || '/',
+        dir: ctx.request.query.prefix || '/',
         prefixes: prefixes || [],
         files: objects || []
       }
@@ -137,8 +133,8 @@ export default class FileController extends Controller {
   public async create (ctx) {
     // egg-multipart，use ctx.multipart() to got file stream 解析表单数据
     const parts = ctx.multipart()
-    // `static/${prefixe}`
-    const dir = this.prefixe + ctx.request.query.dir
+    // `static/${prefix}`
+    const dir = this.baseDir + ctx.request.query.dir
 
 
     // part:
@@ -283,7 +279,7 @@ export default class FileController extends Controller {
 
   // 新建文件夹
   async createDir (ctx) {
-    const dir = this.prefixe + ctx.query.path + ctx.params.dirname + '/'
+    const dir = this.baseDir + ctx.query.path + ctx.params.dirname + '/'
 
     try {
       const { res: exist } = await client.get(dir)
@@ -336,7 +332,6 @@ export default class FileController extends Controller {
     }, 10000)
 
     try {
-      // TODO:
       const filename = ctx.params.id
       await client.delete(filename)
       ctx.status = 200

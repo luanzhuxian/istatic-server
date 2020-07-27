@@ -50,6 +50,82 @@ export default class Icons extends Service {
   //   projectId: 'fe866070c35411ea9a75e9092ba39518',
   //   id: ''
   // }
+
+  // content: buffer 转字符串
+  // <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="18" height="18" viewBox="0 0 18 18">
+  //   <defs>
+  //     <style>
+  //       .cls-1 {
+  //         fill: #c7ced5;
+  //       }
+
+  //       .cls-2 {
+  //         clip-path: url(#clip-path);
+  //       }
+
+  //       .cls-3 {
+  //         fill: #fe7700;
+  //       }
+
+  //       .cls-4 {
+  //         fill: none;
+  //         stroke: #fe7700;
+  //         stroke-linecap: round;
+  //         stroke-width: 2px;
+  //       }
+  //     </style>
+  //     <clipPath id="clip-path">
+  //       <rect id="矩形_224" data-name="矩形 224" class="cls-1" width="18" height="18" transform="translate(10 441)"/>
+  //     </clipPath>
+  //   </defs>
+  //   <g id="蒙版组_5" data-name="蒙版组 5" class="cls-2" transform="translate(-10 -441)">
+  //     <g id="课程" transform="translate(10 442)">
+  //       <path id="路径_1" data-name="路径 1" class="cls-3" d="M3,0H15a2.946,2.946,0,0,1,3,3V13a2.946,2.946,0,0,1-3,3H3a2.946,2.946,0,0,1-3-3V3A2.946,2.946,0,0,1,3,0ZM3,1.5A1.538,1.538,0,0,0,1.5,3V13A1.538,1.538,0,0,0,3,14.5H15A1.538,1.538,0,0,0,16.5,13V3A1.538,1.538,0,0,0,15,1.5Z"/>
+  //       <line id="直线_5" data-name="直线 5" class="cls-4" y2="3.739" transform="translate(13.5 8.761)"/>
+  //       <line id="直线_6" data-name="直线 6" class="cls-4" y2="5.608" transform="translate(9.5 6.892)"/>
+  //       <line id="直线_7" data-name="直线 7" class="cls-4" y2="8.545" transform="translate(5.5 3.955)"/>
+  //     </g>
+  //   </g>
+  // </svg>
+
+  // 最后处理完的 content
+  // <svg viewBox="0 0 18 18" id="icon-mengbanzu 5(1)-cd584">
+  //   <defs>
+  //     <style>
+  //       .bfbbbdffdea {
+  //         fill: #c7ced5;
+  //       }
+
+  //       .dbbfa {
+  //         clip-path: url(#deabaadea);
+  //       }
+
+  //       .bafebacfdecb {
+  //         fill: #fe7700;
+  //       }
+
+  //       .efafdadcdcfaedb {
+  //         fill: none;
+  //         stroke: #fe7700;
+  //         stroke-linecap: round;
+  //         stroke-width: 2px;
+  //       }
+  //     </style>
+  //     <clipPath id="deabaadea">
+  //       <rect id="bebbfbdaeea" data-name="&#x77E9;&#x5F62; 224" class="bfbbbdffdea" width="18" height="18" transform="translate(10 441)"/>
+  //     </clipPath>
+  //   </defs>
+  //   <g id="cbfaddbccaf" data-name="&#x8499;&#x7248;&#x7EC4; 5" class="dbbfa" transform="translate(-10 -441)">
+  //     <g id="fedcbbdfcabfdf" transform="translate(10 442)">
+  //       <path id="cfadcaece" data-name="&#x8DEF;&#x5F84; 1" class="bafebacfdecb" d="M3,0H15a2.946,2.946,0,0,1,3,3V13a2.946,2.946,0,0,1-3,3H3a2.946,2.946,0,0,1-3-3V3A2.946,2.946,0,0,1,3,0ZM3,1.5A1.538,1.538,0,0,0,1.5,3V13A1.538,1.538,0,0,0,3,14.5H15A1.538,1.538,0,0,0,16.5,13V3A1.538,1.538,0,0,0,15,1.5Z"/>
+  //       <line id="fdaaaeabdbacf" data-name="&#x76F4;&#x7EBF; 5" class="efafdadcdcfaedb" y2="3.739" transform="translate(13.5 8.761)"/>
+  //       <line id="cafebbebfedcf" data-name="&#x76F4;&#x7EBF; 6" class="efafdadcdcfaedb" y2="5.608" transform="translate(9.5 6.892)"/>
+  //       <line id="bddcddcbffccdeeedc" data-name="&#x76F4;&#x7EBF; 7" class="efafdadcdcfaedb" y2="8.545" transform="translate(5.5 3.955)"/>
+  //     </g>
+  //   </g>
+  // </svg>
+
+
   public async create (data) {
     const { mysql } = this.app
     const {
@@ -74,8 +150,6 @@ export default class Icons extends Service {
     // let buffer = await readStreamPromise(file)
     // let content = buffer.toString('utf8')
 
-    // console.log('icon service - create - content-1', content)
-
     content = this.modifySvgsId(content)
     const $ = cheerio.load(content) // 解析 html
 
@@ -97,9 +171,6 @@ export default class Icons extends Service {
     $('svg').attr('id', name)
     // TODO:
     content = $('body').html()
-
-    // console.log('icon service - create - content-2', content)
-    // console.log('icon service - create - $', $('body').html())
 
     // 重新上传的处理
     if (id) {
@@ -180,8 +251,9 @@ export default class Icons extends Service {
     })
   }
 
+  // TODO:
   /**
-   * 修改 svg 中的 id, 避免不同 svg 之间 id 重复
+   * 修改 svg 中的 id 和 class， 避免不同 svg 之间 id 重复
    * @param svg {cheerio}
    */
   private modifySvgsId (svg) {

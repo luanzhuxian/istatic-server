@@ -100,8 +100,8 @@ export default class Icons extends Service {
     // ]
     
     const svgs = await this.app.mysql.query(SQL, [ projectId ])
-    // this.test1(svgs)
-    // this.test2(svgs)
+    this.test1(svgs)
+    this.test2(svgs)
 
     // TODO:
     // 将拼接在一起的图标修改为精灵
@@ -204,7 +204,6 @@ export default class Icons extends Service {
     
     try {
       const filename = uuidv1()
-      // TODO:
       // Readable - 可读取数据的流（例如 fs.createReadStream()）
       // stream.read 是对 readable._read() 方法的实现，在该方法中手动添加数据到 Readable 对象的读缓冲
       // 被调用时，如果从资源读取到数据，则需要开始使用 stream.push(chunk) 数据会被缓冲在可读流中，如果流的消费者没有调用 stream.read()，则数据会保留在内部队列中直到被消费。
@@ -217,8 +216,11 @@ export default class Icons extends Service {
         }
       })
 
-      // TODO: 和上面的区别
-      // const rs = fs.createReadStream(svgScript)
+
+      // 上面 跟 下面的区别
+      // when you .push() to a readable stream, the chunks you push are buffered until a consumer is ready to read them.
+      // To avoid buffering data altogether and only generate the data when the consumer asks for it. We can push chunks on-demand by defining a ._read function
+      // 所以打印结果 fileStream 的 buffer 的 length 是 0，end 是 false，因为消费时才会 push。rs 的 buffer 的 length 是 1，end 是 true。
       const rs = bufferToReadStream(svgScript)
       const ds = bufferToDuplexStream(svgScript)
       console.log(1111111111111111, fileStream)
