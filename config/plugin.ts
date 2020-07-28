@@ -17,7 +17,6 @@ const plugin: EggPlugin = {
     enable: true,
     package: 'egg-session-redis',
   },
-
   // 鉴权差距
   passport: {
     enable: true,

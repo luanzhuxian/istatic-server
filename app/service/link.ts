@@ -100,8 +100,8 @@ export default class Icons extends Service {
     // ]
     
     const svgs = await this.app.mysql.query(SQL, [ projectId ])
-    this.test1(svgs)
-    this.test2(svgs)
+    // this.test1(svgs)
+    // this.test2(svgs)
 
     // TODO:
     // 将拼接在一起的图标修改为精灵
@@ -227,8 +227,12 @@ export default class Icons extends Service {
       console.log(2222222222222222, rs)
       console.log(3333333333333333, ds)
 
-      // url: https://mallcdn.youpenglai.com/pl-icons/66e6a1f0-c032-11ea-871e-a1f8066f6847.js
       const res = await this.app.ossClient.putStream(`pl-icons/${filename}.js`, fileStream)
+      // const res = {
+      //   name: `i-static/${filename}.js`
+      // }
+
+      // url: https://mallcdn.youpenglai.com/pl-icons/66e6a1f0-c032-11ea-871e-a1f8066f6847.js
       const url = `https://mallcdn.youpenglai.com/${res.name}`
 
       // 存储url
@@ -248,7 +252,29 @@ export default class Icons extends Service {
    * @param svgs {array} svg 精灵
    * @param projectId {string} 项目id
    */
-  public saveLink (url, svgs, projectId) {
+  public async saveLink (url, svgs, projectId) {
+
+    // 根据 icon 表中当前 project 所有 svg 的 id 生成 hash
+    const svgIds = svgs.map(item => item.id).join('')
+    const hash = await this.generateHash(svgIds)
+
+    const SQL = 'INSERT INTO link (id, js, hash, project_id) VALUES (?,?,?,?)'
+    const id = uuidv1().replace(/\-/g, '')
+    
+    try {
+      // 存入 redis 哈希表
+      await this.app.redis.hset('svg-link', `svg-pro-id-${projectId}`, hash)
+      const res = await this.app.mysql.query(SQL, [ id, url, hash, projectId ])
+      return res
+    } catch (e) {
+      throw e
+    }
+  }
+
+  private async generateHash (str): Promise<string> {
+    // hash 实现了 Readable 接口，监听 readable 事件，当可读流中有数据可读取时，就会触发 'readable' 事件。 在写入 write 新的数据流，当到达流数据的尽头时， 'readable' 事件也会触发，但是在 'end' 事件之前触发。
+    // 'readable' 事件表明流有新的动态：要么有新的数据，要么到达流的尽头。 对于前者，stream.read() 会返回可用的数据。 对于后者，stream.read() 会返回 null。
+
     // Hash {
     //   _options: undefined,
     //   writable: true,
@@ -258,34 +284,20 @@ export default class Icons extends Service {
     // }
     const hash = crypto.createHash('sha256')
 
-    // 根据 icon 表中当前 project 所有 svg 的 id 生成 hash
-    const svgIds = svgs.map(item => item.id).join('')
+    // write some data to hash
+    hash.write(str)
+    hash.end()
 
-    return new Promise((resolve, reject) => {
-      // hash 实现了 Readable 接口，监听 readable 事件，当可读流中有数据可读取时，就会触发 'readable' 事件。 在写入 write 新的数据流，当到达流数据的尽头时， 'readable' 事件也会触发，但是在 'end' 事件之前触发。
-      // 'readable' 事件表明流有新的动态：要么有新的数据，要么到达流的尽头。 对于前者，stream.read() 会返回可用的数据。 对于后者，stream.read() 会返回 null。
-      hash.on('readable', async () => {
+    return new Promise(resolve => {
+      hash.on('readable', () => {
         // TODO: 有数据可读取，read 方法来查看加密的内容，读取已经 hash 加密的内容，返回的数据是 Buffer 对象，哈希流只会生成一个元素。
         const data = hash.read()
         if (data) {
-          const SQL = 'INSERT INTO link (id, js, hash, project_id) VALUES (?,?,?,?)'
-          const id = uuidv1().replace(/\-/g, '')
           // TODO:
           const hashCode = data.toString('hex')
-
-          try {
-            // 存入 redis 哈希表
-            await this.app.redis.hset('svg-link', `svg-pro-id-${projectId}`, hashCode)
-            const res = await this.app.mysql.query(SQL, [ id, url, hashCode, projectId ])
-            resolve(res)
-          } catch (e) {
-            reject(e)
-          }
+          resolve(hashCode)
         }
       })
-      // write some data to hash
-      hash.write(svgIds)
-      hash.end()
     })
   }
   

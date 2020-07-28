@@ -19,12 +19,13 @@ export default class Icons extends Service {
     `
     // 从 redis 哈希表读取
     const oldHash = await this.app.redis.hget('svg-link', `svg-pro-id-${projectId}`)
-    const list = await this.app.mysql.query(SQL, [ projectId, visible ])
-    const newHash = await this.generateHash(list.map(item => item.id).join(''))
+    console.log(oldHash)
+    const svgs = await this.app.mysql.query(SQL, [ projectId, visible ])
+    const newHash = await this.generateHash(svgs.map(item => item.id).join(''))
     
     return {
-      changed: list.length && visible === '1' ? oldHash !== newHash : false,
-      list
+      changed: svgs.length && visible === '1' ? oldHash !== newHash : false,
+      list: svgs
     }
   }
 
@@ -151,7 +152,6 @@ export default class Icons extends Service {
     // let content = buffer.toString('utf8')
 
     content = this.modifySvgsId(content)
-    const $ = cheerio.load(content) // 解析 html
 
     // 生成唯一哈希值，避免名字重复，如 icon-pdf-887fd
     let hash = await this.generateHash(content)
@@ -165,6 +165,8 @@ export default class Icons extends Service {
     }).flat(2).join('')
     const name = `icon-${namePingYin}-${hash}`
 
+    // 解析 html
+    const $ = cheerio.load(content)
     // 删除 svg 上没有用的一些属性
     this.removeSvgsAttr($)
     // 增加 id 属性

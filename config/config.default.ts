@@ -13,6 +13,10 @@ export default (appInfo: EggAppInfo) => {
         // bodyName: 'csrfToken', // 通过 body 传递 CSRF token 的默认字段为 csrfToken
         // }
     },
+    // 默认值为 SAMEORIGIN，只允许同域页面作为 iframe 嵌入，防止 iframe 钓鱼
+    xframe: {
+      enable: false,
+    },
     bodyParser: {
       jsonLimit: '5mb',
       formLimit: '5mb'
@@ -29,10 +33,6 @@ export default (appInfo: EggAppInfo) => {
     ],
     errorHandler: {
       match: '/api',
-    },
-    // 默认值为 SAMEORIGIN，只允许同域页面作为 iframe 嵌入，防止 iframe 钓鱼
-    xframe: {
-      enable: false,
     },
     /**
      * session相关配置，这里配置的是默认值，可以通过ctx.session[pro]进行动态设置
