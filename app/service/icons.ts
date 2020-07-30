@@ -59,15 +59,12 @@ export default class Icons extends Service {
   //       .cls-1 {
   //         fill: #c7ced5;
   //       }
-
   //       .cls-2 {
   //         clip-path: url(#clip-path);
   //       }
-
   //       .cls-3 {
   //         fill: #fe7700;
   //       }
-
   //       .cls-4 {
   //         fill: none;
   //         stroke: #fe7700;
@@ -96,15 +93,12 @@ export default class Icons extends Service {
   //       .bfbbbdffdea {
   //         fill: #c7ced5;
   //       }
-
   //       .dbbfa {
   //         clip-path: url(#deabaadea);
   //       }
-
   //       .bafebacfdecb {
   //         fill: #fe7700;
   //       }
-
   //       .efafdadcdcfaedb {
   //         fill: none;
   //         stroke: #fe7700;
