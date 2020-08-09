@@ -5,10 +5,8 @@ import OSS = require('ali-oss')
 const client = new OSS({
   region: 'oss-cn-hangzhou',
   // 云账号 AccessKey 有所有 API 访问权限，建议遵循阿里云安全最佳实践，部署在服务端使用 RAM 子账号或 STS，部署在客户端使用 STS。
-  // accessKeyId: 'LTAIp2d1lrbhVlo6',
-  // accessKeySecret: 'AnzFTZL25nddBhaJ4VqrLu9jrY5Hjk',
-  accessKeyId: 'STS.NUAQb4FfGVekNKmu25nkwn1rP',
-  accessKeySecret: '3Ef2C8sdhDsCiXsHBpeGauRRrF7y5fRneraDu1VqVh9D',
+  accessKeyId: 'L---TAI4GGpjwn2daaWfD2tdZU9',
+  accessKeySecret: '3---GBPL5eBs4sGCnpEJB8vZKlieemDdI',
   bucket: 'penglai-weimall',
   secure: false // 是否使用 https
 })
