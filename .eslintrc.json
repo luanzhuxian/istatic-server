@@ -1,0 +1,24 @@
+{
+    "root": true,
+    "extends": [
+        "eslint-config-egg/typescript"
+    ],
+    "parserOptions": {
+        "project": "./tsconfig.json",
+        "parser": "@typescript-eslint/parser"
+    },
+    "plugins": ["@typescript-eslint"],
+    "rules": {
+        "no-var": "error",
+        // 优先使用 interface 而不是 type
+        "@typescript-eslint/consistent-type-definitions": [
+            "error",
+            "interface"
+        ],
+        "comma-dangle": ["error", "never"],
+        "semi": ["error", "never"],
+        "indent": ["error", 4, { "SwitchCase": 1 }],
+        "@typescript-eslint/semi": ["error", "never"],
+        "@typescript-eslint/indent": ["error", 4, { "SwitchCase": 1 }]
+    }
+}

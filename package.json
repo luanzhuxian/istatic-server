@@ -17,7 +17,8 @@
     "tsc": "ets && tsc -p tsconfig.json",
     "ci": "npm run lint && npm run cov && npm run tsc",
     "autod": "autod",
-    "lint": "tslint --project . -c tslint.json",
+    "lint": "eslint ./ --ext .ts",
+    "lint:fix": "eslint --fix --ext .ts ./",
     "init-database": "use database init.sql"
   },
   "dependencies": {
@@ -43,14 +44,17 @@
     "@types/mocha": "^2.2.40",
     "@types/node": "^12.12.22",
     "@types/supertest": "^2.0.0",
+    "@typescript-eslint/eslint-plugin": "^3.8.0",
+    "@typescript-eslint/parser": "^3.8.0",
     "autod": "^3.0.1",
     "autod-egg": "^1.1.0",
     "egg-bin": "^4.14.1",
     "egg-ci": "^1.8.0",
     "egg-mock": "^3.25.0",
+    "eslint": "^7.6.0",
+    "eslint-config-egg": "^8.0.1",
+    "eslint-plugin-eggache": "^1.0.0",
     "tslib": "^1.9.0",
-    "tslint": "^5.0.0",
-    "tslint-config-egg": "^1.0.0",
     "typescript": "^3.7.4"
   },
   "engines": {

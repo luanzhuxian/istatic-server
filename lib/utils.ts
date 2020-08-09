@@ -1,4 +1,4 @@
-import RStream = require("readable-stream")
+import RStream = require('readable-stream')
 // import uuidv4 = require("uuid/v4")
 
 /**
@@ -6,22 +6,22 @@ import RStream = require("readable-stream")
  * @param readStream {ReadableStream}
  * @return {Promise}
  */
-export function readStreamPromise (readStream: RStream): Promise<Buffer> {
-  const chunks: Buffer[] = []
-  let chunkLength: number = 0
+export function readStreamPromise(readStream: RStream): Promise<Buffer> {
+    const chunks: Buffer[] = []
+    let chunkLength = 0
 
-  return new Promise((resolve, reject) => {
-    readStream.on('data', (chunk: Buffer) => {
-      chunks.push(chunk)
-      chunkLength += chunk.length
+    return new Promise((resolve, reject) => {
+        readStream.on('data', (chunk: Buffer) => {
+            chunks.push(chunk)
+            chunkLength += chunk.length
+        })
+        readStream.on('end', () => {
+            resolve(Buffer.concat(chunks, chunkLength))
+        })
+        readStream.on('error', e => {
+            reject(e)
+        })
     })
-    readStream.on('end', () => {
-      resolve(Buffer.concat(chunks, chunkLength))
-    })
-    readStream.on('error', e => {
-      reject(e)
-    })
-  })
 }
 
 // export function uuidv4() {

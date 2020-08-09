@@ -1,7 +1,7 @@
 import { Service } from 'egg'
 
 export default class ConvertService extends Service {
-    public async index () {
+    public async index() {
         const SQL = `
             SELECT *,
             image_name as name,
@@ -18,15 +18,15 @@ export default class ConvertService extends Service {
         }
     }
 
-    public async create (file, encoding: string = 'base64') {
+    public async create(file, encoding = 'base64') {
         try {
             const { filename, mime } = file
-            const selectSQL = `SELECT * FROM images WHERE image_name = ?`
+            const selectSQL = 'SELECT * FROM images WHERE image_name = ?'
             const insertSQL = 'INSERT INTO images (id, image_name, content) VALUES (REPLACE(UUID(), "-", ""), ?, ?)'
 
             const selectList = await this.app.mysql.query(selectSQL, [ filename ])
             if (selectList.length) {
-                throw new Error('file already exists') 
+                throw new Error('file already exists')
             }
 
             return new Promise((resolve, reject) => {
@@ -34,7 +34,7 @@ export default class ConvertService extends Service {
                 //     const data = file.read()
                 //     if (data) {
                 //         const base64Img = `data:${mime};base64,${data.toString(encoding)}`
-        
+
                 //         try {
                 //             const result = await this.app.mysql.query(insertSQL, [ filename, base64Img ])
                 //             if (result.affectedRows) {
@@ -53,29 +53,29 @@ export default class ConvertService extends Service {
 
                 // 在进行网络请求时，会不断接收到数据(数据不是一次性获取到的)，node 会把接收到的数据片段逐段的保存在缓冲区（Buffer），这些数据片段会形成一个个缓冲对象（即 Buffer 对象），而 Buffer 数据的拼接并不能像字符串那样拼接（因为一个中文字符占三个字节），如果一个数据片段携带着一个中文的两个字节，下一个数据片段携带着最后一个字节，直接字符串拼接会导致乱码，为避免乱码，所以将得到缓冲数据推入到 chunks 数组中，利用下面的 node.js 内置的 Buffer.concat() 方法进行拼接，将 chunks 数组中的缓冲数据拼接起来，返回一个新的 Buffer 对象
                 file.on('data', chunk => {
-            　　　　chunks.push(chunk)　 
-            　　　　size += chunk.length
-            　　})
+                    chunks.push(chunk)
+                    size += chunk.length
+                })
 
                 file.on('end', async err => {
                     if (err) {
                         console.warn('*********** err ************', err)
                     }
 
-            　　　　const data = Buffer.concat(chunks, size)
-            　　　　const base64Img = `data:${mime};base64,${data.toString(encoding)}`
+                    const data = Buffer.concat(chunks, size)
+                    const base64Img = `data:${mime};base64,${data.toString(encoding)}`
 
                     try {
                         const result = await this.app.mysql.query(insertSQL, [ filename, base64Img ])
                         if (result.affectedRows) {
-                            const [current] = await this.app.mysql.query(selectSQL, [ filename ])
+                            const [ current ] = await this.app.mysql.query(selectSQL, [ filename ])
                             current.name = current.image_name
                             resolve(current)
                         }
                     } catch (error) {
                         reject(error)
                     }
-            　　})
+                })
             })
 
         } catch (error) {
@@ -84,7 +84,7 @@ export default class ConvertService extends Service {
         }
     }
 
-    public async delete (id) {
+    public async delete(id) {
         const SQL = 'DELETE FROM images WHERE id = ?'
 
         try {
@@ -98,7 +98,7 @@ export default class ConvertService extends Service {
         }
     }
 
-    public async find (id) {
+    public async find(id) {
         const SQL = `
             SELECT *,
             image_name as name,
@@ -107,7 +107,7 @@ export default class ConvertService extends Service {
             FROM images WHERE id = ?
         `
         try {
-            const [current] = await this.app.mysql.query(SQL, [ id ])
+            const [ current ] = await this.app.mysql.query(SQL, [ id ])
             return current
         } catch (error) {
             throw error
