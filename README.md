@@ -4,6 +4,11 @@
 
 ## QuickStart
 
+启动 mysql
+启动 redis：在redis目录下，在命令窗口执行：redis-server.exe redis.windows.conf
+修改 accessKeyId 和 accessKeySecret
+
+
 ### 本地开发环境启动
 
 ```bash
