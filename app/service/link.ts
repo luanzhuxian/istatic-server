@@ -1,9 +1,30 @@
 import { Service } from 'egg'
+import fs = require('fs')
+import path = require('path')
 import { Readable, Duplex } from 'stream'
-import uuidv1 = require('uuid/v1')
 import crypto = require('crypto')
-// import cheerio = require('cheerio')
-// import fs = require('fs')
+import cheerio = require('cheerio')
+import uuidv1 = require('uuid/v1')
+
+import OSS = require('ali-oss')
+// import SVGIcons2SVGFontStream = require('svgicons2svgfont')
+// import svg2ttf = require('svg2ttf')
+// import ttf2woff = require('ttf2woff')
+// import ttf2woff2 = require('ttf2woff2')
+// import ttf2eot = require('ttf2eot')
+import archiver = require('archiver')
+import webfontsGenerator = require('../../lib/webfonts-generator/src')
+
+const client = new OSS({
+    region: 'oss-cn-hangzhou',
+    // 云账号AccessKey有所有API访问权限，建议遵循阿里云安全最佳实践，部署在服务端使用RAM子账号或STS，部署在客户端使用STS。
+    // accessKeyId: 'L---TAI4GGpjwn2daaWfD2tdZU9',
+    // accessKeySecret: '3---GBPL5eBs4sGCnpEJB8vZKlieemDdI',
+    bucket: 'penglai-weimall',
+    // 是否使用https
+    secure: false
+})
+
 
 // Readable – 可读操作
 function bufferToReadStream(buffer) {
@@ -21,16 +42,26 @@ function bufferToDuplexStream(buffer) {
     return stream
 }
 
-export default class Icons extends Service {
+export default class IconsService extends Service {
     public async index(projectId) {
+        // const sql = `
+        //                 SELECT id, 
+        //                 js as link, 
+        //                 DATE_FORMAT(create_time, '%Y-%m-%d %T') as create_time 
+        //                 FROM link  
+        //                 WHERE project_id = ? 
+        //                 ORDER BY create_time DESC LIMIT 1 OFFSET 0
+        //             `
         const sql = `
-      SELECT id, 
-      js as link, 
-      DATE_FORMAT(create_time, '%Y-%m-%d %T') as create_time 
-      FROM link  
-      WHERE project_id = ? 
-      ORDER BY create_time DESC LIMIT 1 OFFSET 0
-    `
+                        SELECT id, 
+                        css as fontClassUrl, 
+                        dir_key, 
+                        js as symbolUrl, 
+                        DATE_FORMAT(create_time, '%Y-%m-%d %T') as create_time 
+                        FROM link  
+                        WHERE project_id = ? 
+                        ORDER BY create_time DESC LIMIT 1 OFFSET 0
+                    `
 
         // res: Array< RowDataPacket >
         // [
@@ -53,12 +84,17 @@ export default class Icons extends Service {
    * 生成在线链接
    */
     public async create(projectId) {
+        // const SQL = `
+        //                 SELECT content, id 
+        //                 FROM icons 
+        //                 WHERE visible = 1 AND project_id = ? 
+        //                 ORDER BY update_time desc
+        //             `
         const SQL = `
-      SELECT content, id 
-      FROM icons 
-      WHERE visible = 1 AND project_id = ? 
-      ORDER BY update_time desc
-    `
+                        SELECT * FROM icons 
+                        WHERE visible = 1 AND project_id = ? 
+                        ORDER BY update_time desc
+                    `
 
         // [
         //   RowDataPacket {
@@ -99,13 +135,16 @@ export default class Icons extends Service {
         //   }
         // ]
 
-        const svgs = await this.app.mysql.query(SQL, [ projectId ])
-        // this.test1(svgs)
-        // this.test2(svgs)
+        const SVG_DATA = await this.app.mysql.query(SQL, [ projectId ])
+        const SVG_CONTENT = SVG_DATA.map(item => item.content)
+        // this.test1(SVG_DATA)
+        // this.test2(SVG_DATA)
 
         // TODO:
         // 将拼接在一起的图标修改为精灵
-        const spirit = svgs.map(item => item.content).join('').replace(/svg/g, 'symbol')
+        // const spirit = SVG_DATA.map(item => item.content).join('').replace(/svg/g, 'symbol')
+        const spirit = SVG_CONTENT.join('').replace(/svg/g, 'symbol')
+
 
         // script:
         // !function(t){var h,v=`
@@ -202,12 +241,20 @@ export default class Icons extends Service {
         // destroy <Function> 对 stream._destroy() 方法的实现。
         // autoDestroy <boolean> 流是否应在结束后自动调用 .destroy()。默认值: true。
 
+        // 将文件内容转为流
         try {
-            const filename = uuidv1()
+            const project = await this.app.mysql.query('SELECT font_face from project WHERE id = ?', [ projectId ])
+
+            const fontFace = project[0].font_face
+            const fileDir = uuidv1()
+
+            // 生成字体图标文件
+            const RES: any = await this.svg2font(SVG_DATA, fontFace)
+
             // Readable - 可读取数据的流（例如 fs.createReadStream()）
             // stream.read 是对 readable._read() 方法的实现，在该方法中手动添加数据到 Readable 对象的读缓冲
             // 被调用时，如果从资源读取到数据，则需要开始使用 stream.push(chunk) 数据会被缓冲在可读流中，如果流的消费者没有调用 stream.read()，则数据会保留在内部队列中直到被消费。
-            const fileStream = new Readable({
+            const svgScriptStream = new Readable({
                 autoDestroy: true,
                 read() {
                     // 向缓冲区推送数据
@@ -223,48 +270,119 @@ export default class Icons extends Service {
             // 所以打印结果 fileStream 的 buffer 的 length 是 0，end 是 false，因为消费时才会 push。rs 的 buffer 的 length 是 1，end 是 true。
             const rs = bufferToReadStream(svgScript)
             const ds = bufferToDuplexStream(svgScript)
-            console.log(1111111111111111, fileStream)
+            console.log(1111111111111111, svgScriptStream)
             console.log(2222222222222222, rs)
             console.log(3333333333333333, ds)
 
-            const res = await this.app.ossClient.putStream(`pl-icons/${filename}.js`, fileStream)
+            const svgStream = new Readable({
+                autoDestroy: true,
+                read () {
+                  this.push(RES.svg)
+                  this.push(null)
+                }
+            })
+            const ttfStream = new Readable({
+                autoDestroy: true,
+                read () {
+                    this.push(RES.ttf)
+                    this.push(null)
+                }
+            })
+            const woffStream = new Readable({
+                autoDestroy: true,
+                read () {
+                    this.push(RES.woff)
+                    this.push(null)
+                }
+            })
+            const woff2Stream = new Readable({
+                autoDestroy: true,
+                read () {
+                    this.push(RES.woff2)
+                    this.push(null)
+                }
+            })
+            const eotStream = new Readable({
+                autoDestroy: true,
+                read () {
+                    this.push(RES.eot)
+                    this.push(null)
+                }
+            })
+            const cssStream = new Readable({
+                autoDestroy: true,
+                read () {
+                    this.push(RES.generateCss())
+                    this.push(null)
+                }
+            })
+
+            await client.putStream(`pl-icons/${fileDir}/${ fontFace }.svg`, svgStream)
+            await client.putStream(`pl-icons/${fileDir}/${ fontFace }.ttf`, ttfStream)
+            await client.putStream(`pl-icons/${fileDir}/${ fontFace }.woff`, woffStream)
+            await client.putStream(`pl-icons/${fileDir}/${ fontFace }.woff2`, woff2Stream)
+            await client.putStream(`pl-icons/${fileDir}/${ fontFace }.eot`, eotStream)
+
+            // 上传至OSS并返回链接
+            const symbol2Res = await client.putStream(`pl-icons/${fileDir}/${ fontFace }.js`, svgScriptStream)
+            const cssRes = await client.putStream(`pl-icons/${fileDir}/${ fontFace }.css`, cssStream)
             // const res = {
             //   name: `i-static/${filename}.js`
             // }
 
             // url: https://mallcdn.youpenglai.com/pl-icons/66e6a1f0-c032-11ea-871e-a1f8066f6847.js
-            const url = `https://mallcdn.youpenglai.com/${res.name}`
+            const symbolUrl = `https://mallcdn.youpenglai.com/${symbol2Res.name}`
+            const fontClassUrl = `https://mallcdn.youpenglai.com/${cssRes.name}`
 
             // 存储url
-            await this.saveLink(url, svgs, projectId)
+            await this.saveLink(symbolUrl, fontClassUrl, SVG_DATA, projectId, fileDir)
             return {
-                key: res.name,
-                url
+                symbolUrl,
+                fontClassUrl
             }
         } catch (e) {
             throw e
         }
     }
 
+    public async download (dirKey) {
+        const archive = archiver('zip', {
+          zlib: { level: 9 }
+        })
+        this.ctx.response.body = archive
+        const result = await client.list({
+          prefix: `pl-icons/${ dirKey }`
+        })
+        for (const file of result.objects) {
+          console.log(file.url)
+          const res = await client.getStream(file.name)
+          await archive.append(res.stream, { name: file.name.split('/').slice(-1)[0] })
+        }
+        archive.finalize()
+        return
+    }
+
     /**
-   * 存储链接，并为当前 spirit 生成 hash 值，通过 hash 值可判断图标是否发生过修改
-   * @param url {string} js链接地址
-   * @param svgs {array} svg 精灵
-   * @param projectId {string} 项目id
-   */
-    public async saveLink(url, svgs, projectId) {
+     * 存储链接，并为当前spirit生成hash值，通过hash值可判断图标是否发生过修改
+     * @param js {string} js链接地址
+     * @param css {string} css链接地址
+     * @param projectId {string} 项目id
+     * @param fileDir {string} 文件存放目录
+     * @param svgs {array} svg 精灵
+     */
+    public async saveLink (js, css, svgs, projectId, fileDir) {
 
         // 根据 icon 表中当前 project 所有 svg 的 id 生成 hash
         const svgIds = svgs.map(item => item.id).join('')
-        const hash = await this.generateHash(svgIds)
+        const hashCode = await this.generateHash(svgIds)
 
-        const SQL = 'INSERT INTO link (id, js, hash, project_id) VALUES (?,?,?,?)'
+        const SQL = 'INSERT INTO link (id, js, css, hash, project_id, dir_key) VALUES (?,?,?,?,?,?)'
         const id = uuidv1().replace(/\-/g, '')
 
         try {
             // 存入 redis 哈希表
-            await this.app.redis.hset('svg-link', `svg-pro-id-${projectId}`, hash)
-            const res = await this.app.mysql.query(SQL, [ id, url, hash, projectId ])
+            await this.app.redis.hset('icon-hash', `svg-pro-id-${projectId}`, hashCode)
+            const res = await this.app.mysql.query(SQL, [ id, js, css, hashCode, projectId, fileDir ])
             return res
         } catch (e) {
             throw e
@@ -304,6 +422,86 @@ export default class Icons extends Service {
     // TODO:
     private createSvgScript(spirit) {
         return '!function(t){var h,v=`<svg>' + spirit + '</svg>`,l=(h=document.getElementsByTagName("script"))[h.length-1].getAttribute("data-injectcss");if(l&&!t.__iconfont__svg__cssinject__){t.__iconfont__svg__cssinject__=!0;try{document.write("<style>.svgfont {display: inline-block;width: 1em;height: 1em;fill: currentColor;vertical-align: -0.1em;font-size:16px;}</style>")}catch(h){console&&console.log(h)}}!function(h){if(document.addEventListener)if(~["complete","loaded","interactive"].indexOf(document.readyState))setTimeout(h,0);else{var l=function(){document.removeEventListener("DOMContentLoaded",l,!1),h()};document.addEventListener("DOMContentLoaded",l,!1)}else document.attachEvent&&(a=h,c=t.document,z=!1,(m=function(){try{c.documentElement.doScroll("left")}catch(h){return void setTimeout(m,50)}v()})(),c.onreadystatechange=function(){"complete"==c.readyState&&(c.onreadystatechange=null,v())});function v(){z||(z=!0,a())}var a,c,z,m}(function(){var h,l;(h=document.createElement("div")).innerHTML=v,v=null,(l=h.getElementsByTagName("svg")[0])&&(l.setAttribute("aria-hidden","true"),l.style.position="absolute",l.style.width=0,l.style.height=0,l.style.overflow="hidden",function(h,l){l.firstChild?function(h,l){l.parentNode.insertBefore(h,l)}(h,l.firstChild):l.appendChild(h)}(l,document.body))})}(window);'
+    }
+        
+    private svg2font (svgs: any[], fontFace: string) {
+        return new Promise(async (resolve, reject) => {
+            const files: any[] = []
+            const initCodePoints: any[] = []
+            try {
+                // @ts-ignore
+                for (const [ i, svg ] of svgs.entries()) {
+                const $ = cheerio.load(svg.content)
+                const $svg = $('svg')
+                $svg.attr('width', svg.width)
+                $svg.attr('height', svg.height)
+                $svg.attr('xmlns', 'http://www.w3.org/2000/svg')
+                $svg.removeAttr('t')
+                $svg.removeAttr('style')
+                // console.log(svg)
+                // const REG = /viewBox="([\d\s.]+)"/
+                // const viewBox = REG.exec(svg.content)[1] || ''
+                // if (!viewBox) continue
+                // const size = `width="${ viewBox.split(' ')[2] }" height="${ viewBox.split(' ')[3] }"`
+                // svg.content = '<?xml version="1.0" encoding="UTF-8"?>\n' + svg.content.replace(REG, `viewBox="${ viewBox }" ${ size } xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"`)
+                // const nameArr = svg.icon_name.split('-')
+                // const newName = nameArr.slice(1, nameArr.length - 1).join('-')
+                const filePath = path.join(__dirname, `../../fonts/${ svg.icon_name }.svg`)
+                files.push(filePath)
+                initCodePoints.push(svg.unicode)
+                // const updateSql = `UPDATE icons SET content = ? WHERE id = ?`
+                // await this.app.mysql.query(updateSql, [ svg.content, svg.id ])
+                fs.writeFileSync(filePath, $('body').html(), { encoding: 'utf8' })
+                }
+            } catch (e) {
+                reject(e)
+            }
+            const fontName = fontFace || 'yaji'
+            const baseSelector = `.${ fontName }-icon`
+            console.log(files)
+            console.log(initCodePoints)
+            console.log(fontName)
+            console.log(baseSelector)
+            webfontsGenerator({
+                files,
+                // 码点的数组，与files中的图标一一对应
+                initCodePoints,
+                fontName,
+                dest: path.join(__dirname, '../../fonts/dest'),
+                types: [ 'svg', 'ttf', 'woff', 'woff2', 'eot' ],
+                order: [ 'eot', 'woff2', 'woff', 'ttf', 'svg' ],
+                // 文件不写入本地
+                writeFiles: false,
+                templateOptions: {
+                // 名称前缀（不需要）
+                classPrefix: '',
+                // 选择器前缀
+                baseSelector
+                }
+            }, async (error, res) => {
+                if (error) {
+                reject(error)
+                } else {
+                resolve(res)
+                setTimeout(() => {
+                    this.delFile(files)
+                }, 60000)
+                console.log('Done!')
+                }
+            })
+        })
+    }
+
+    private delFile (files) {
+        for (const url of files) {
+        fs.unlink(url, err => {
+            if (err) {
+            console.error(err)
+            return
+            }
+            console.log('已成功删除文件:', url)
+        })
+        }
     }
 
 

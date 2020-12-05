@@ -1,5 +1,5 @@
 import RStream = require('readable-stream')
-// import uuidv4 = require("uuid/v4")
+import uuidv4 = require("uuid/v4")
 
 /**
  * 将可读流装为 promise
@@ -24,6 +24,6 @@ export function readStreamPromise(readStream: RStream): Promise<Buffer> {
     })
 }
 
-// export function uuidv4() {
-//   return uuidv4().replace(/\-/g, '').replace(/\d/g, '')
-// }
+export function uuidv4() {
+  return uuidv4().replace(/\-/g, '').replace(/\d/g, '')
+}

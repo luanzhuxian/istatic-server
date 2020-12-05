@@ -1,6 +1,7 @@
 interface ProjectData {
   name: string
   id?: string
+  fontFace?: string
 }
 interface Axios {
   get: any,

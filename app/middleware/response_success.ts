@@ -2,7 +2,7 @@ module.exports = () => {
     return async function(ctx, next) {
         try {
             const data = await next()
-            if (ctx.status === 200) {
+            if (data !== undefined && ctx.status === 200) {
                 ctx.body = {
                     message: 'SUCCESS',
                     status: 200,

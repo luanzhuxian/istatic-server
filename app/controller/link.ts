@@ -1,6 +1,6 @@
 import { Controller } from 'egg'
 
-export default class Porject extends Controller {
+export default class LinkController extends Controller {
     public async index(ctx) {
         const rule = {
             projectId: {
@@ -62,6 +62,17 @@ export default class Porject extends Controller {
         } catch (e) {
             ctx.status = 500
             throw e
+        }
+    }
+
+    public async download (ctx) {
+        try {
+          await ctx.service.link.download(ctx.request.body.dirKey)
+          ctx.status = 200
+          return
+        } catch (e) {
+          ctx.status = 500
+          throw e
         }
     }
 }

@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "ali-oss": "^6.4.0",
+    "archiver": "^5.0.2",
     "axios": "^0.19.0",
     "cheerio": "^1.0.0-rc.3",
     "egg": "^2.26.0",
@@ -33,11 +34,21 @@
     "egg-scripts": "^2.12.0",
     "egg-session-redis": "^2.1.0",
     "egg-validate": "^2.0.2",
+    "handlebars": "^4.7.6",
     "html-minifier": "^4.0.0",
     "mime": "^2.4.4",
+    "mkdirp": "^1.0.4",
     "moment": "^2.24.0",
     "passport-local": "^1.0.0",
     "pinyin": "^2.9.0",
+    "q": "^1.5.1",
+    "svg2ttf": "^5.0.0",
+    "svgicons2svgfont": "^9.1.1",
+    "ttf2eot": "^2.0.0",
+    "ttf2woff": "^2.0.2",
+    "ttf2woff2": "^3.0.0",
+    "underscore": "^1.11.0",
+    "url-join": "^4.0.1",
     "uuid": "^3.3.3"
   },
   "devDependencies": {
@@ -55,6 +66,8 @@
     "eslint-config-egg": "^8.0.1",
     "eslint-plugin-eggache": "^1.0.0",
     "tslib": "^1.9.0",
+    "tslint": "^5.0.0",
+    "tslint-config-egg": "^1.0.0",
     "typescript": "^3.7.4"
   },
   "engines": {

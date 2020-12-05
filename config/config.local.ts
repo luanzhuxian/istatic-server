@@ -8,7 +8,9 @@ export default () => {
             port: '3306',
             user: 'root',
             password: 'lzx19870620',
-            database: 'istatic'
+            database: 'istatic',
+            // 可同时执行多条语句
+            multipleStatements: true
         },
         // 是否加载到 app 上，默认开启
         app: true,

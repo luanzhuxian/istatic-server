@@ -1,24 +1,27 @@
 import { Service } from 'egg'
-import moment = require('moment')
-import pinyin = require('pinyin')
+import fs = require("fs")
+import { join } from "path"
 import uuidv4 = require('uuid/v4')
 import cheerio = require('cheerio')
 import crypto = require('crypto')
+import moment = require('moment')
+import { checkIconName } from '../../lib/validate'
+
 // import { readStreamPromise } from '../../lib/utils'
 
-export default class Icons extends Service {
+export default class IconsService extends Service {
     timer: any = 0
 
     public async getList(query) {
         const { projectId = '', visible } = query
         const SQL = `
-      SELECT *
-      FROM icons
-      WHERE project_id = ? AND visible = ?
-      ORDER BY update_time desc
-    `
+                        SELECT *
+                        FROM icons
+                        WHERE project_id = ? AND visible = ?
+                        ORDER BY update_time desc
+                    `
         // 从 redis 哈希表读取
-        const oldHash = await this.app.redis.hget('svg-link', `svg-pro-id-${projectId}`)
+        const oldHash = await this.app.redis.hget('icon-hash', `svg-pro-id-${projectId}`)
         console.log(oldHash)
         const svgs = await this.app.mysql.query(SQL, [ projectId, visible ])
         const newHash = await this.generateHash(svgs.map(item => item.id).join(''))
@@ -129,9 +132,27 @@ export default class Icons extends Service {
             projectId,
             namespace
         } = data
-        const filename = file.filename.split('.')[0]
+        const project = await mysql.query('SELECT font_face from project WHERE id = ?', [ projectId ])
+        const fontFace = project[0].font_face
         const chunks: Buffer[] = []
+        const filename = file.filename.split('.')[0]
+        const name = `${ fontFace }-${filename}`
+
+        // 图标上传时不再默认添加hash，改为校验图标名称
+        if (!checkIconName(filename)) {
+            this.ctx.status = 422
+            throw new Error('文件名只能是字母、数字、_ 或 -')
+        }
+        const iconExists = await this.iconExists(name, projectId)
+        console.log('图标是否存在：', iconExists)
+        if (iconExists) {
+            this.ctx.status = 422
+            throw new Error('文件名重复，请修改')
+        }
+
         let chunkLen = 0
+        let content = ''
+        // let hash = ''
 
         // for of 也是消费流的一种方法
         for await (const chunk of file) {
@@ -139,7 +160,7 @@ export default class Icons extends Service {
             chunkLen += chunk.length
         }
         // 转字符串
-        let content = Buffer.concat(chunks, chunkLen).toString('utf8')
+        content = Buffer.concat(chunks, chunkLen).toString('utf8')
 
         // 封装另一种消费流的方法 on('data')
         // let buffer = await readStreamPromise(file)
@@ -151,20 +172,31 @@ export default class Icons extends Service {
         let hash = await this.generateHash(content)
         hash = hash.substring(0, 5)
 
-        // 如果文件名是中文的，转成拼音
-        const namePingYin = pinyin(filename, {
-            heteronym: false,
-            segment: false,
-            style: pinyin.STYLE_NORMAL
-        }).flat(2).join('')
-        const name = `icon-${namePingYin}-${hash}`
-
         // 解析 html
+        // 将svg转成“DOM”, 然后对其中的一些属性进行操作
         const $ = cheerio.load(content)
-        // 删除 svg 上没有用的一些属性
-        this.removeSvgsAttr($)
+        const $svg = $('svg')
+
         // 增加 id 属性
-        $('svg').attr('id', name)
+        // $('svg').attr('id', name)
+        $svg.attr('id', name)
+        const viewBox = $svg.attr('viewBox').split(' ')
+        // 没有宽时从viewBox取
+        if (!$svg.attr('width')) $svg.attr('width', viewBox[2])
+        // 没有高时从viewBox取
+        if (!$svg.attr('height')) $svg.attr('height', viewBox[3])
+        // 保存宽度
+        const width = $svg.attr('width')
+        // 保存高度
+        const height = $svg.attr('height')
+
+        // 删除 svg 上没有用的一些属性
+        $svg.removeAttr('width')
+        $svg.removeAttr('height')
+        $svg.removeAttr('xlink')
+        $svg.removeAttr('xmlns')
+        $svg.removeAttr('t')
+        $svg.removeAttr('style')
         // TODO:
         content = $('body').html()
 
@@ -175,15 +207,19 @@ export default class Icons extends Service {
             })
         }
 
-        const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc, project_id, namespace) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?, ?, ?)'
+        const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc, project_id, namespace, unicode, width, height) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?, ?, ?, ?, ?, ?)'
+        const maxUnicode = await mysql.query('SELECT unicode from icons ORDER BY unicode desc LIMIT 1')
         await mysql.query(insertSql, [
             content,
             name,
             filename,
             projectId,
-            namespace
+            namespace,
+            maxUnicode && maxUnicode.length ? ++maxUnicode[0].unicode : 61697,
+            width,
+            height
         ])
-        await this.updateProjectUpdateTime(projectId)
+        await this.updateProject(projectId)
         return true
     }
 
@@ -206,7 +242,7 @@ export default class Icons extends Service {
 
         await mysql.query(updateSql, [ name, desc, content, projectId, namespace, visible, updateTime, id ])
         const res = await mysql.query(querySql, [ id ])
-        await this.updateProjectUpdateTime(projectId)
+        await this.updateProject(projectId)
 
         return res
     }
@@ -217,12 +253,12 @@ export default class Icons extends Service {
 
         const [ current ] = await this.app.mysql.query(querySql, [ id ])
         const res = await this.app.mysql.query(deleteSql, [ id ])
-        await this.updateProjectUpdateTime(current.project_id)
+        await this.updateProject(current.project_id)
         return res
     }
 
     // 更新项目修改时间
-    private async updateProjectUpdateTime(projectId) {
+    private async updateProject(projectId) {
         clearTimeout(this.timer)
         this.timer = setTimeout(() => {
             const SQL = 'UPDATE project set update_time = NOW() WHERE id = ?'
@@ -249,9 +285,9 @@ export default class Icons extends Service {
 
     // TODO:
     /**
-   * 修改 svg 中的 id 和 class， 避免不同 svg 之间 id 重复
-   * @param svg {cheerio}
-   */
+     * 修改svg中的一些属性(id 和 class等), 避免不同svg之间存在属性值重复( id )的情况
+     * @param svg {cheerio}
+     */
     private modifySvgsId(svg) {
         const ids = svg.matchAll(/id\s*=\s*"([^"]+)"/gi)
         for (const val of ids) {
@@ -270,30 +306,67 @@ export default class Icons extends Service {
         return svg
     }
 
-    private removeSvgsAttr($) {
-        $('svg')
-            .removeAttr('width')
-            .removeAttr('height')
-            .removeAttr('fill')
-            .removeAttr('xmlns')
-            .removeAttr('xlink')
-            .removeAttr('version')
-            .removeAttr('t')
+    private async iconExists (iconName: string, project_id: string): Promise<boolean> {
+        const list = await this.app.mysql.query('SELECT * FROM icons  WHERE icon_name = ? AND project_id = ?', [ iconName, project_id ])
+        return Boolean(list && list.length)
     }
 
-    // 更新hash
-    // private async updateSvgHash () {
-    //   const hash = crypto.createHash('sha256')
-    //   const svg = await this.app.mysql.query('SELECT content FROM icons WHERE visible = 1')
-    //   hash.on('readable', () => {
-    //     const data = hash.read()
-    //     if (data) {
-    //       const hashCode = data.toString('hex')
-    //       this.app.redis.set('svg', hashCode)
-    //     }
-    //   })
-    //   const svgStr = svg.map(item => item.content).join('')
-    //   hash.write(svgStr)
-    //   hash.end()
-    // }
+    public async demo () {
+        // const svgs = await this.app.mysql.query('SELECT id,content from icons WHERE project_id="92ab0da0f0d711ea9c368dc4eae83408"')
+        // const sq1 = 'UPDATE icons SET width = ? WHERE project_id = "a9c63dd044f111eabb107986812f97fb" AND icon_name = ?'
+        // const sq2 = 'UPDATE icons SET height = ? WHERE project_id = "a9c63dd044f111eabb107986812f97fb" AND icon_name = ?'
+        // const sq3 = 'UPDATE icons SET content = ? WHERE project_id = "a9c63dd044f111eabb107986812f97fb" AND icon_name = ?'
+        const svgSymbol = fs.readFileSync(join(__dirname, 'admall.txt'), { encoding: 'utf8' })
+        // console.log(svgSymbol)
+        const $ = cheerio.load(svgSymbol)
+        const symbols = $('symbol')
+        for (let i = 0; i < symbols.length; i++) {
+          const c = $(symbols[i])
+          // const $svg = $('<svg></svg>')
+          // const attrs = c.attr()
+          console.log(c.removeAttr('viewBox'))
+          // for (const at of Object.keys(attrs)) {
+            // const viewBox = c.attr('viewBox').split(' ')
+            // if (!c.attr('width')) {
+            //   c.attr('width', viewBox[2])
+            // }
+            // if (!c.attr('height')) {
+            //   c.attr('height', viewBox[3])
+            // }
+            // if (at === 'xmlns' || at === 'height' || at === 'width' || at === 'xmlns:xlink' || at === 'xlink') {
+            //   continue
+            // }
+            // $svg.attr(at, attrs[at])
+          // }
+          // console.log(c.attr('width'), c.attr('height'), c.attr('id'))
+          // await this.app.mysql.query(sq1, [ c.attr('width'), c.attr('id') ])
+          // await this.app.mysql.query(sq2, [ c.attr('height'), c.attr('id') ])
+          // await this.app.mysql.query(sq3, [ $svg.html(c.html()).toString(), c.attr('id') ])
+          // console.log(c.attr().width)
+          // console.log($svg.html(c.html()).toString())
+        }
+        // for (const sym of $('symbol')) {
+        //   console.log(sym.html())
+        // }
+        // for (const svg of svgs) {
+        //   const $ = cheerio.load(svg.content)
+        //   const $svg = $('svg')
+        //   const viewBox = $svg.attr('viewBox')
+        //   const width = $svg.attr('width') || viewBox.split(' ')[2]
+        //   const height = $svg.attr('height') || viewBox.split(' ')[3]
+        //   const sq1 = 'UPDATE icons SET width = ?'
+        //   const sq2 = 'UPDATE icons SET height = ?'
+        //   const sq3 = 'UPDATE icons SET content = ?'
+        //   await this.app.mysql.query(sq1, [ width ])
+        //   await this.app.mysql.query(sq2, [ height ])
+        //   $('svg').attr('width', null)
+        //   $('svg').attr('height', null)
+        //   $('svg').attr('xmlns', null)
+        //   $('svg').attr('xmlns:xlink', null)
+        //   $('svg').attr('xlink', null)
+        //   const content = $('body').html()
+        //   await this.app.mysql.query(sq3, [ content ])
+        // }
+        return 1
+    }
 }

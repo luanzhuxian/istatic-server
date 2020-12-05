@@ -1,20 +1,24 @@
--- use istatic;
+use istatic;
 
 
 # 用户表
-#CREATE TABLE user (
-#	id VARCHAR(32) PRIMARY KEY NOT NULL,
-#	account VARCHAR(100) NOT NULL, # 账户
-#	password VARCHAR(32) NOT NULL, # 密码
-#	nickname VARCHAR(100), # 昵称
-#	avatar VARCHAR(200), # 头像
-#	create_time datetime NOT NULL DEFAULT NOW()
-#);
+CREATE TABLE user (
+	id VARCHAR(32) PRIMARY KEY NOT NULL,
+	account VARCHAR(100) NOT NULL, # 账户
+	password VARCHAR(32) NOT NULL, # 密码
+    salt VARCHAR(32), #
+	nickname VARCHAR(100), # 昵称
+	avatar VARCHAR(200), # 头像
+	create_time datetime NOT NULL DEFAULT NOW(),
+    update_time datetime NOT NULL DEFAULT NOW()
+);
 
 # 项目表
 CREATE TABLE project (
 	id VARCHAR(32) PRIMARY KEY NOT NULL,
 	project_name VARCHAR(100), # 项目名称
+    font_face VARCHAR(100), #
+    disabled INT NOT NULL DEFAULT 0, # 0 1
 	create_time datetime NOT NULL DEFAULT NOW(),
 	update_time datetime NOT NULL DEFAULT NOW()
 );
@@ -31,7 +35,10 @@ CREATE TABLE icons (
 	create_time datetime NOT NULL DEFAULT NOW(),
 	update_time datetime NOT NULL DEFAULT NOW(),
 
-	visible INT NOT NULL DEFAULT 1 # 是否显示 0 1
+	visible INT NOT NULL DEFAULT 1, # 是否显示 0 1
+    unicode VARCHAR(32),
+    width VARCHAR(32),
+    height VARCHAR(32)
 );
 
 # 图标打包后的链接
@@ -41,7 +48,8 @@ CREATE TABLE link (
 	css VARCHAR(150),
 	js VARCHAR(150),
 	create_time datetime NOT NULL DEFAULT NOW(),
-	hash VARCHAR(100)
+	hash VARCHAR(100),
+	dir_key VARCHAR(100)
 );
 
 # 操作日志

@@ -106,4 +106,10 @@ export default class IconsController extends Controller {
             throw e
         }
     }
+
+    async demo (ctx) {
+        const res = await ctx.service.icons.demo()
+        ctx.status = 200
+        return res
+    }
 }

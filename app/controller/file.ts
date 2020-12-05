@@ -5,8 +5,8 @@ import OSS = require('ali-oss')
 const client = new OSS({
     region: 'oss-cn-hangzhou',
     // 云账号 AccessKey 有所有 API 访问权限，建议遵循阿里云安全最佳实践，部署在服务端使用 RAM 子账号或 STS，部署在客户端使用 STS。
-    accessKeyId: 'L---TAI4GGpjwn2daaWfD2tdZU9',
-    accessKeySecret: '3---GBPL5eBs4sGCnpEJB8vZKlieemDdI',
+    // accessKeyId: 'L---TAI4GGpjwn2daaWfD2tdZU9',
+    // accessKeySecret: '3---GBPL5eBs4sGCnpEJB8vZKlieemDdI',
     bucket: 'penglai-weimall',
     secure: false // 是否使用 https
 })
@@ -18,7 +18,8 @@ const client = new OSS({
 let hasDelete = false
 
 export default class FileController extends Controller {
-    baseDir = 'static/'
+    root: string = 'static/'
+    cdn: string = 'cdn/'
 
     constructor(params) {
         super(params)
@@ -62,14 +63,30 @@ export default class FileController extends Controller {
    */
     public async index(ctx) {
         try {
-            const prefix = this.baseDir + ctx.request.query.prefix
+            let prefix = ctx.request.query.prefix
+            if (prefix.indexOf('cdn/') === -1) {
+                prefix = prefix ? `${this.root}${prefix}` : this.root
+            }
 
             // 当前路径下的文件夹 prefixes 和文件 objects
-            let { objects, prefixes } = await client.list({ prefix, delimiter: '/', MaxKeys: 1000 })
+            const staticFiles = await client.list({
+                prefix,
+                delimiter: '/',
+                MaxKeys: 1000
+            })
 
-            if (prefixes) {
-                prefixes = prefixes.map(item => item.replace(prefix, ''))
-            }
+            // const cdnFiles = await client.list({
+            //   prefix: this.cdn,
+            //   delimiter: '/',
+            //   MaxKeys: 1000
+            // })
+
+            let { objects, prefixes = [] } = staticFiles
+            prefixes = prefixes || []
+            prefixes = prefixes.map(item => {
+              return item.replace(prefix, '')
+            })
+
             if (objects) {
                 objects = objects.filter(item => item.size).map(item => {
                     delete item.etag
@@ -85,7 +102,7 @@ export default class FileController extends Controller {
             ctx.status = 200
             return {
                 dir: ctx.request.query.prefix || '/',
-                prefixes: prefixes || [],
+                prefixes: prefix === this.root ? [ 'cdn/', ...prefixes ] : prefixes,
                 files: objects || []
             }
         } catch (e) {
@@ -132,8 +149,10 @@ export default class FileController extends Controller {
         // egg-multipart，use ctx.multipart() to got file stream 解析表单数据
         const parts = ctx.multipart()
         // `static/${prefix}`
-        const dir = this.baseDir + ctx.request.query.dir
-
+        let dir = ctx.request.query.dir
+        if (dir.indexOf(this.cdn) === -1) {
+            dir = this.root + ctx.request.query.dir
+        }
 
         // part:
         // FileStream {
@@ -276,7 +295,12 @@ export default class FileController extends Controller {
 
     // 新建文件夹
     async createDir(ctx) {
-        const dir = this.baseDir + ctx.query.path + ctx.params.dirname + '/'
+        let dir = ctx.params.dirname
+        if (ctx.query.path.indexOf(this.cdn) === -1) {
+            dir = this.root + ctx.query.path + dir + '/'
+        } else {
+            dir = ctx.query.path + dir + '/'
+        }
 
         try {
             const { res: exist } = await client.get(dir)

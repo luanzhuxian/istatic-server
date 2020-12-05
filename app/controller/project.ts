@@ -1,6 +1,6 @@
 import { Controller } from 'egg'
 
-export default class Porject extends Controller {
+export default class PorjectController extends Controller {
     public async index(ctx) {
         try {
             const res = await ctx.service.project.getList()
@@ -41,15 +41,20 @@ export default class Porject extends Controller {
 
     public async update(ctx) {
         const rule = {
+            name: {
+                type: 'string',
+                max: 10,
+                require: true
+            },
             id: {
                 type: 'string',
                 max: 32,
                 require: true
             },
-            name: {
+            fontFace: {
                 type: 'string',
-                max: 10,
-                require: true
+                max: 32,
+                require: false
             }
         }
         const body: ProjectData = ctx.request.body
@@ -72,7 +77,7 @@ export default class Porject extends Controller {
             ctx.status = 200
             return res
         } catch (e) {
-            ctx.status = 500
+            ctx.status = ctx.status || 500
             throw e
         }
     }
@@ -103,7 +108,7 @@ export default class Porject extends Controller {
             ctx.status = 200
             return true
         } catch (e) {
-            ctx.status = 500
+            ctx.status = ctx.status || 500
             throw e
         }
     }
