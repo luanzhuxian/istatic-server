@@ -7,6 +7,7 @@ import ExportFile from '../../../app/controller/file';
 import ExportIcons from '../../../app/controller/icons';
 import ExportLink from '../../../app/controller/link';
 import ExportProject from '../../../app/controller/project';
+import ExportQiniuFile from '../../../app/controller/qiniuFile';
 import ExportUser from '../../../app/controller/user';
 
 declare module 'egg' {
@@ -16,6 +17,7 @@ declare module 'egg' {
     icons: ExportIcons;
     link: ExportLink;
     project: ExportProject;
+    qiniuFile: ExportQiniuFile;
     user: ExportUser;
   }
 }

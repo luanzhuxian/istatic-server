@@ -42,6 +42,7 @@
     "passport-local": "^1.0.0",
     "pinyin": "^2.9.0",
     "q": "^1.5.1",
+    "qiniu": "^7.3.2",
     "svg2ttf": "^5.0.0",
     "svgicons2svgfont": "^9.1.1",
     "ttf2eot": "^2.0.0",

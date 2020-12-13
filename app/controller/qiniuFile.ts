@@ -1,20 +1,39 @@
 import { Controller } from 'egg'
-import moment = require('moment')
 import OSS = require('ali-oss')
+import moment = require('moment')
+import qiniu = require('qiniu')
+
+// import mime = require("mime")
+// import uuidv4 = require("uuid/v4")
+// import fs = require("fs")
+// import path = require("path")
+
+const accessKey = 'Fen12idbYMTMzpPucLIbCLAIwNTXJ-rbBpB2yOVh'
+const secretKey = '0DSA62PwWOQWeJ5n-qcOdUNYp5o8MCccl_ifY9PA'
+
+const mac = new qiniu.auth.digest.Mac(accessKey, secretKey)
+const config = new qiniu.conf.Config()
+// @ts-ignore
+config.zone = qiniu.zone.Zone_z2
+const bucketManager = new qiniu.rs.BucketManager(mac, config)
+const bucket = 'litemall-wx'
+let marker = ''
+
+const publicBucketDomain = 'http://lzx.monster.red/'
+// const publicDownloadUrl = bucketManager.publicDownloadUrl(publicBucketDomain, 'so4zbehsrt8v550bczbv')
+// console.log('publicDownloadUrl', publicDownloadUrl)
 
 const client = new OSS({
     region: 'oss-cn-hangzhou',
     // 云账号 AccessKey 有所有 API 访问权限，建议遵循阿里云安全最佳实践，部署在服务端使用 RAM 子账号或 STS，部署在客户端使用 STS。
     // accessKeyId: 'L---TAI4GGpjwn2daaWfD2tdZU9',
     // accessKeySecret: '3---GBPL5eBs4sGCnpEJB8vZKlieemDdI',
+    accessKeyId: 'LTAI4GGpjwn2daaWfD2tdZU9',
+    accessKeySecret: '3GBPL5eBs4sGCnpEJB8vZKlieemDdI',
     bucket: 'penglai-weimall',
     secure: false // 是否使用 https
 })
 
-// import mime = require("mime")
-// import uuidv4 = require("uuid/v4")
-// import fs = require("fs")
-// import path = require("path")
 let hasDelete = false
 
 export default class FileController extends Controller {
@@ -64,46 +83,40 @@ export default class FileController extends Controller {
     public async index(ctx) {
         try {
             let prefix = ctx.request.query.prefix
-            if (prefix.indexOf('cdn/') === -1) {
-                prefix = prefix ? `${this.root}${prefix}` : this.root
-            }
-
-            // 当前路径下的文件夹 prefixes 和文件 objects
-            const staticFiles = await client.list({
+            const options = {
                 prefix,
                 delimiter: '/',
-                MaxKeys: 1000
+                limit: 999,
+                marker
+            }
+
+            const respBody = await ctx.service.qiniuFile.index(bucket, options, bucketManager)
+            let { items = [], commonPrefixes = [], marker: nextMarker } = respBody
+            // 如果 nextMarker 不为空，那么还有未列举完毕的文件列表，下次调用的时候，指定 options 里面的 marker 为这个值
+            marker = nextMarker || ''
+
+            commonPrefixes = commonPrefixes.map(item => {
+                return item.replace(prefix, '')
             })
-
-            // const cdnFiles = await client.list({
-            //   prefix: this.cdn,
-            //   delimiter: '/',
-            //   MaxKeys: 1000
-            // })
-
-            let { objects, prefixes = [] } = staticFiles
-            prefixes = prefixes || []
-            prefixes = prefixes.map(item => {
-              return item.replace(prefix, '')
-            })
-
-            if (objects) {
-                objects = objects.filter(item => item.size).map(item => {
+    
+            if (items) {
+                items = items.filter(item => item.fsize).map(item => {
                     delete item.etag
                     delete item.storageClass
                     delete item.owner
-                    item.url = 'https://mallcdn.youpenglai.com/' + item.name
-                    item.key = item.name
-                    item.name = item.name.split('/').splice(-1, 1).join('')
-                    item.lastModified = moment(item.lastModified).format('YYYY-MM-DD HH:mm:ss')
+                    item.url = publicBucketDomain + item.key
+                    item.key = item.key
+                    item.name = item.key.split('/').splice(-1, 1).join('')
+                    item.size = item.fsize
+                    item.lastModified = moment(item.putTime).format('YYYY-MM-DD HH:mm:ss')
                     return item
                 })
             }
             ctx.status = 200
             return {
                 dir: ctx.request.query.prefix || '/',
-                prefixes: prefix === this.root ? [ 'cdn/', ...prefixes ] : prefixes,
-                files: objects || []
+                prefixes: commonPrefixes,
+                files: items
             }
         } catch (e) {
             ctx.status = 500

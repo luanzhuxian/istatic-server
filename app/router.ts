@@ -5,7 +5,7 @@ export default (app: Application) => {
     router.resources('project', '/api/project', controller.project)
     router.resources('link', '/api/link', controller.link)
     router.resources('icons', '/api/icons', controller.icons)
-    router.resources('file', '/api/file', controller.file)
+    router.resources('file', '/api/file', controller.qiniuFile)
     router.post('/api/create/dir/:dirname', controller.file.createDir)
     
     router.resources('user', '/api/user', controller.user)
