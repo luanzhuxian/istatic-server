@@ -262,13 +262,14 @@ export default class FileController extends Controller {
 
         try {
             const { items = [] } = await ctx.service.qiniuFile.listPrefix(bucket, options, bucketManager)
-            if (!items.length) {
-                throw new Error('该目录不存在或不是文件夹')
-            }
-            if (items.length > 1) {
+            console.log(items)
+            // if (!items.length) {
+            //     throw new Error('该目录不存在或不是文件夹')
+            // }
+            if (items.length > 1 || (items.length === 1 && items[0].fsize)) {
                 throw new Error('该目录不为空，请先删除该目录下所有文件')
             }
-            if (items.length === 1) {          
+            if (items.length === 1 && items[0].fsize === 0) {          
                 await ctx.service.qiniuFile.delete(this.bucket, path, this.bucketManager)
                 const item = items[0]
                 const dirArr = item.key.split('/')
