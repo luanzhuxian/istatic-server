@@ -6,7 +6,8 @@ export default (app: Application) => {
     router.resources('link', '/api/link', controller.link)
     router.resources('icons', '/api/icons', controller.icons)
     router.resources('file', '/api/file', controller.qiniuFile)
-    router.post('/api/create/dir/:dirname', controller.file.createDir)
+    router.post('/api/create/dir/:dirname', controller.qiniuFile.createDir)
+    router.delete('/api/destroy/dir/:path', controller.qiniuFile.destroyDir)
     
     router.resources('user', '/api/user', controller.user)
     // app.passport.authenticate(strategy, options) - 生成指定的鉴权中间件
