@@ -77,14 +77,6 @@ export default class FileController extends Controller {
         }
     }
 
-
-    // putStream(name, stream[, options])
-    // Add a stream object to the bucket.
-
-    // parameters:
-    // name {String} object name store on OSS
-    // stream {ReadStream} object ReadStream content instance
-
     // 上传文件
     public async create (ctx) {
         interface UploadResults {

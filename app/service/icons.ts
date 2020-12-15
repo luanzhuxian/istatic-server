@@ -22,7 +22,6 @@ export default class IconsService extends Service {
                     `
         // 从 redis 哈希表读取
         const oldHash = await this.app.redis.hget('icon-hash', `svg-pro-id-${projectId}`)
-        console.log(oldHash)
         const svgs = await this.app.mysql.query(SQL, [ projectId, visible ])
         const newHash = await this.generateHash(svgs.map(item => item.id).join(''))
 

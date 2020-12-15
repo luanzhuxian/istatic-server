@@ -352,7 +352,7 @@ export default class IconsService extends Service {
           prefix: `pl-icons/${ dirKey }`
         })
         for (const file of result.objects) {
-          console.log(file.url)
+          console.log('download', file.url)
           const res = await this.client.getStream(file.name)
           await archive.append(res.stream, { name: file.name.split('/').slice(-1)[0] })
         }

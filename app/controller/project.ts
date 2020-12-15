@@ -20,7 +20,7 @@ export default class PorjectController extends Controller {
                 require: true
             }
         }
-        const body: ProjectData = ctx.request.body
+        const { body }: { body: ProjectData } = ctx.request
 
         try {
             ctx.validate(rule, body)
@@ -57,7 +57,9 @@ export default class PorjectController extends Controller {
                 require: false
             }
         }
-        const body: ProjectData = ctx.request.body
+
+        // validate 检查 body
+        const { body }: { body: ProjectData } = ctx.request
         body.id = ctx.params.id
 
         try {

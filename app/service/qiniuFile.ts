@@ -20,7 +20,7 @@ export default class FileService extends Service {
                         // console.log('nextMarker', marker)
                         // console.log('commonPrefixes', commonPrefixes)
                         // var items = respBody.items
-                        // items.forEach(function(item) {
+                        // items.forEach((item) => {
                         //     // console.log(item)
                         //     // console.log(item.key)
                         //     // console.log(item.hash)
@@ -124,7 +124,7 @@ export default class FileService extends Service {
                         reject(err)
                     }
                     if (respInfo.statusCode == 200) {
-                        console.log('putStream', respBody)
+                        console.log('put success', respBody)
                         resolve(respBody)
                     } else {
                         console.error(respInfo.statusCode)

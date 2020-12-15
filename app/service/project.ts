@@ -12,15 +12,6 @@ export default class PorjectService extends Service {
                         order by 'update_time' desc
                     `
 
-        // res: Array< RowDataPacket >
-        // [
-        //   RowDataPacket {
-        //     id: '76d10410c4ac11ea93872329f8a316d4',
-        //     project_name: 'haha',
-        //     create_time: '2020-07-13 09:59:19',
-        //     update_time: '2020-07-13 09:59:23'
-        //   }
-        // ]
         const res = await this.app.mysql.query(SQL)
         res.map(item => {
             item.name = item.project_name
@@ -37,30 +28,16 @@ export default class PorjectService extends Service {
             const SQL = 'INSERT INTO project (id, project_name) VALUES (?,?)'
             const selectSql = `SELECT * FROM project WHERE id='${id}'`
 
-
-            // res:
-            // OkPacket {
-            //   fieldCount: 0,
-            //   affectedRows: 1,
-            //   insertId: 0,
-            //   serverStatus: 2,
-            //   warningCount: 0,
-            //   message: '',
-            //   protocol41: true,
-            //   changedRows: 0
-            // }
-
-            // current: Array< RowDataPacket >
-            // [
-            //   RowDataPacket {
-            //     id: '1a3b79d0cbc611eaaf05657b742d6ea8',
-            //     project_name: 'zooooo',
-            //     create_time: 2020-07-22T02:50:29.000Z,
-            //     update_time: 2020-07-22T02:50:29.000Z
-            //   }
-            // ]
-
-            const res = await mysql.query(SQL, [ id, data.name ])
+            const res: {
+                fieldCount: number;
+                affectedRows: number;
+                changedRows: number;
+                insertId: number;
+                serverStatus: number;
+                warningCount: number;
+                message: string;
+                protocol41: boolean;
+            } = await mysql.query(SQL, [ id, data.name ])
             if (res.affectedRows >= 1) {
                 const [ current ] = await mysql.query(selectSql)
                 return current
@@ -76,36 +53,25 @@ export default class PorjectService extends Service {
             this.ctx.status = 403
             throw new Error('不可编辑')
         }
+
         try {
             const { mysql } = this.app
             const { id, name, fontFace } = data
             const updateTime = moment().format('YYYY-MM-DD HH:mm:ss')
             const SQL = `UPDATE project SET project_name=?, update_time=?, font_face=? WHERE id=?`
-            // const selectSql = `
-            //                     SELECT *,
-            //                     project_name as name,
-            //                     DATE_FORMAT(create_time, '%Y-%m-%d %T') as create_time,
-            //                     DATE_FORMAT(update_time, '%Y-%m-%d %T') as update_time
-            //                     FROM project WHERE id='${id}'
-            //                   `
-            const selectSql = `SELECT * FROM project WHERE id='${data.id}'`
-
-            // res:
-            // OkPacket {
-            //   fieldCount: 0,
-            //   affectedRows: 1,
-            //   insertId: 0,
-            //   serverStatus: 2,
-            //   warningCount: 0,
-            //   message: '(Rows matched: 1  Changed: 1  Warnings: 0',
-            //   protocol41: true,
-            //   changedRows: 1
-            // }
+            const selectSql = `
+                                SELECT *,
+                                project_name as name,
+                                DATE_FORMAT(create_time, '%Y-%m-%d %T') as create_time,
+                                DATE_FORMAT(update_time, '%Y-%m-%d %T') as update_time
+                                FROM project WHERE id='${id}'
+                              `
 
             const res = await mysql.query(SQL, [ name, updateTime, fontFace, id])
             if (res.affectedRows >= 1) {
                 const [ current ] = await mysql.query(selectSql)
-                // delete current.project_name
+                current.disabled = Boolean(current.disabled)
+                delete current.project_name
                 return current
             }
             return null
@@ -119,6 +85,7 @@ export default class PorjectService extends Service {
             this.ctx.status = 403
             throw new Error('不可删除')
         }
+        
         try {
             return Promise.all([
                 this.app.mysql.query('DELETE FROM project WHERE id = ?', [ id ]),
