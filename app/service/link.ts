@@ -1,12 +1,12 @@
 import { Service } from 'egg'
 import fs = require('fs')
 import path = require('path')
-import { Readable, Duplex } from 'stream'
+// import { Readable, Duplex } from 'stream'
+import { Readable } from 'stream'
 import crypto = require('crypto')
 import cheerio = require('cheerio')
 import uuidv1 = require('uuid/v1')
 
-import OSS = require('ali-oss')
 // import SVGIcons2SVGFontStream = require('svgicons2svgfont')
 // import svg2ttf = require('svg2ttf')
 // import ttf2woff = require('ttf2woff')
@@ -15,37 +15,32 @@ import OSS = require('ali-oss')
 import archiver = require('archiver')
 import webfontsGenerator = require('../../lib/webfonts-generator/src')
 
-const client = new OSS({
-    region: 'oss-cn-hangzhou',
-    // 云账号AccessKey有所有API访问权限，建议遵循阿里云安全最佳实践，部署在服务端使用RAM子账号或STS，部署在客户端使用STS。
-    // accessKeyId: 'L---TAI4GGpjwn2daaWfD2tdZU9',
-    // accessKeySecret: '3---GBPL5eBs4sGCnpEJB8vZKlieemDdI',
-    accessKeyId: 'LTAI4GGpjwn2daaWfD2tdZU9',
-    accessKeySecret: '3GBPL5eBs4sGCnpEJB8vZKlieemDdI',
-    bucket: 'penglai-weimall',
-    // 是否使用https
-    secure: false
-})
-
 
 // Readable – 可读操作
-function bufferToReadStream(buffer) {
-    const stream = new Readable()
-    stream.push(buffer)
-    stream.push(null)
-    return stream
-}
+// function bufferToReadStream(buffer) {
+//     const stream = new Readable()
+//     stream.push(buffer)
+//     stream.push(null)
+//     return stream
+// }
 
-// Duplex – 可读可写操作
-function bufferToDuplexStream(buffer) {
-    const stream = new Duplex()
-    stream.push(buffer)
-    stream.push(null)
-    return stream
-}
+// // Duplex – 可读可写操作
+// function bufferToDuplexStream(buffer) {
+//     const stream = new Duplex()
+//     stream.push(buffer)
+//     stream.push(null)
+//     return stream
+// }
 
 export default class IconsService extends Service {
-    public async index(projectId) {
+    client: any
+
+    constructor(params) {
+        super(params)
+        this.client = this.app.aliOssClient
+    }
+
+    public async index (projectId) {
         // const sql = `
         //                 SELECT id, 
         //                 js as link, 
@@ -85,7 +80,7 @@ export default class IconsService extends Service {
     /**
    * 生成在线链接
    */
-    public async create(projectId) {
+    public async create (projectId) {
         // const SQL = `
         //                 SELECT content, id 
         //                 FROM icons 
@@ -270,11 +265,12 @@ export default class IconsService extends Service {
             // when you .push() to a readable stream, the chunks you push are buffered until a consumer is ready to read them.
             // To avoid buffering data altogether and only generate the data when the consumer asks for it. We can push chunks on-demand by defining a ._read function
             // 所以打印结果 fileStream 的 buffer 的 length 是 0，end 是 false，因为消费时才会 push。rs 的 buffer 的 length 是 1，end 是 true。
-            const rs = bufferToReadStream(svgScript)
-            const ds = bufferToDuplexStream(svgScript)
-            console.log(1111111111111111, svgScriptStream)
-            console.log(2222222222222222, rs)
-            console.log(3333333333333333, ds)
+
+            // const rs = bufferToReadStream(svgScript)
+            // const ds = bufferToDuplexStream(svgScript)
+            // console.log(1111111111111111, svgScriptStream)
+            // console.log(2222222222222222, rs)
+            // console.log(3333333333333333, ds)
 
             const svgStream = new Readable({
                 autoDestroy: true,
@@ -319,15 +315,15 @@ export default class IconsService extends Service {
                 }
             })
 
-            await client.putStream(`pl-icons/${fileDir}/${ fontFace }.svg`, svgStream)
-            await client.putStream(`pl-icons/${fileDir}/${ fontFace }.ttf`, ttfStream)
-            await client.putStream(`pl-icons/${fileDir}/${ fontFace }.woff`, woffStream)
-            await client.putStream(`pl-icons/${fileDir}/${ fontFace }.woff2`, woff2Stream)
-            await client.putStream(`pl-icons/${fileDir}/${ fontFace }.eot`, eotStream)
+            await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.svg`, svgStream)
+            await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.ttf`, ttfStream)
+            await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.woff`, woffStream)
+            await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.woff2`, woff2Stream)
+            await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.eot`, eotStream)
 
             // 上传至OSS并返回链接
-            const symbol2Res = await client.putStream(`pl-icons/${fileDir}/${ fontFace }.js`, svgScriptStream)
-            const cssRes = await client.putStream(`pl-icons/${fileDir}/${ fontFace }.css`, cssStream)
+            const symbol2Res = await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.js`, svgScriptStream)
+            const cssRes = await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.css`, cssStream)
             // const res = {
             //   name: `i-static/${filename}.js`
             // }
@@ -352,12 +348,12 @@ export default class IconsService extends Service {
           zlib: { level: 9 }
         })
         this.ctx.response.body = archive
-        const result = await client.list({
+        const result = await this.client.list({
           prefix: `pl-icons/${ dirKey }`
         })
         for (const file of result.objects) {
           console.log(file.url)
-          const res = await client.getStream(file.name)
+          const res = await this.client.getStream(file.name)
           await archive.append(res.stream, { name: file.name.split('/').slice(-1)[0] })
         }
         archive.finalize()
@@ -391,7 +387,7 @@ export default class IconsService extends Service {
         }
     }
 
-    private async generateHash(str): Promise<string> {
+    private async generateHash (str): Promise<string> {
     // hash 实现了 Readable 接口，监听 readable 事件，当可读流中有数据可读取时，就会触发 'readable' 事件。 在写入 write 新的数据流，当到达流数据的尽头时， 'readable' 事件也会触发，但是在 'end' 事件之前触发。
     // 'readable' 事件表明流有新的动态：要么有新的数据，要么到达流的尽头。 对于前者，stream.read() 会返回可用的数据。 对于后者，stream.read() 会返回 null。
 
@@ -422,7 +418,7 @@ export default class IconsService extends Service {
     }
 
     // TODO:
-    private createSvgScript(spirit) {
+    private createSvgScript (spirit) {
         return '!function(t){var h,v=`<svg>' + spirit + '</svg>`,l=(h=document.getElementsByTagName("script"))[h.length-1].getAttribute("data-injectcss");if(l&&!t.__iconfont__svg__cssinject__){t.__iconfont__svg__cssinject__=!0;try{document.write("<style>.svgfont {display: inline-block;width: 1em;height: 1em;fill: currentColor;vertical-align: -0.1em;font-size:16px;}</style>")}catch(h){console&&console.log(h)}}!function(h){if(document.addEventListener)if(~["complete","loaded","interactive"].indexOf(document.readyState))setTimeout(h,0);else{var l=function(){document.removeEventListener("DOMContentLoaded",l,!1),h()};document.addEventListener("DOMContentLoaded",l,!1)}else document.attachEvent&&(a=h,c=t.document,z=!1,(m=function(){try{c.documentElement.doScroll("left")}catch(h){return void setTimeout(m,50)}v()})(),c.onreadystatechange=function(){"complete"==c.readyState&&(c.onreadystatechange=null,v())});function v(){z||(z=!0,a())}var a,c,z,m}(function(){var h,l;(h=document.createElement("div")).innerHTML=v,v=null,(l=h.getElementsByTagName("svg")[0])&&(l.setAttribute("aria-hidden","true"),l.style.position="absolute",l.style.width=0,l.style.height=0,l.style.overflow="hidden",function(h,l){l.firstChild?function(h,l){l.parentNode.insertBefore(h,l)}(h,l.firstChild):l.appendChild(h)}(l,document.body))})}(window);'
     }
         
@@ -476,19 +472,19 @@ export default class IconsService extends Service {
                 writeFiles: false,
                 templateOptions: {
                 // 名称前缀（不需要）
-                classPrefix: '',
-                // 选择器前缀
-                baseSelector
+                    classPrefix: '',
+                    // 选择器前缀
+                    baseSelector
                 }
             }, async (error, res) => {
                 if (error) {
-                reject(error)
+                    reject(error)
                 } else {
-                resolve(res)
-                setTimeout(() => {
-                    this.delFile(files)
-                }, 60000)
-                console.log('Done!')
+                    resolve(res)
+                    setTimeout(() => {
+                        this.delFile(files)
+                    }, 60000)
+                    console.log('Done!')
                 }
             })
         })
@@ -498,8 +494,8 @@ export default class IconsService extends Service {
         for (const url of files) {
         fs.unlink(url, err => {
             if (err) {
-            console.error(err)
-            return
+                console.error(err)
+                return
             }
             console.log('已成功删除文件:', url)
         })
@@ -507,7 +503,7 @@ export default class IconsService extends Service {
     }
 
 
-    public test1(svgs) {
+    public test1 (svgs) {
         const svgIds = svgs.map(item => item.id).join('')
 
         const hash = crypto.createHash('sha256')

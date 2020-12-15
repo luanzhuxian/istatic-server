@@ -1,5 +1,4 @@
 import { Controller } from 'egg'
-import qiniu = require('qiniu')
 import moment = require('moment')
 // import fs = require("fs")
 // import path = require("path")
@@ -11,9 +10,6 @@ let hasDelete = false
 export default class FileController extends Controller {
     root: string = 'static/'
     cdn: string = 'cdn/'
-    accessKey: string
-    secretKey: string
-    bucketManager: any
     bucket: string
     publicBucketDomain: string
     marker = ''
@@ -25,16 +21,9 @@ export default class FileController extends Controller {
 
     public init () {
         const { qiniuConfig } = this.app.config
-        this.accessKey = qiniuConfig.accessKey
-        this.secretKey = qiniuConfig.secretKey
         this.bucket = qiniuConfig.bucket
         this.publicBucketDomain = qiniuConfig.publicBucketDomain
 
-        const mac = new qiniu.auth.digest.Mac(this.accessKey, this.secretKey)
-        const config = new qiniu.conf.Config()
-        // @ts-ignore
-        config.zone = qiniu.zone.Zone_z2
-        this.bucketManager = new qiniu.rs.BucketManager(mac, config)
         // const publicDownloadUrl = bucketManager.publicDownloadUrl(publicBucketDomain, 'so4zbehsrt8v550bczbv')
     } 
 
@@ -46,7 +35,7 @@ export default class FileController extends Controller {
     public async index (ctx) {
         try {
             let prefix = ctx.request.query.prefix
-            const { bucket, bucketManager, publicBucketDomain } = this
+            const { bucket, publicBucketDomain } = this
             const options = {
                 prefix,
                 delimiter: '/',
@@ -54,7 +43,7 @@ export default class FileController extends Controller {
                 marker: this.marker
             }
 
-            const respBody = await ctx.service.qiniuFile.listPrefix(bucket, options, bucketManager)
+            const respBody = await ctx.service.qiniuFile.listPrefix(bucket, options)
             let { items = [], commonPrefixes = [], marker: nextMarker } = respBody
             // 如果 nextMarker 不为空，那么还有未列举完毕的文件列表，下次调用的时候，指定 options 里面的 marker 为这个值
             this.marker = nextMarker || ''
@@ -111,7 +100,7 @@ export default class FileController extends Controller {
         const parts = ctx.multipart()
         // `static/${prefix}`
         const dir = ctx.request.query.dir
-        const uploadToken = await this.service.qiniuFile.creatUploadToken()    
+        const uploadToken = await this.service.qiniuFile.createUploadToken()    
 
         // part:
         // FileStream {
@@ -166,7 +155,7 @@ export default class FileController extends Controller {
             const { filename } = part
 
             try {
-                const isExist = await ctx.service.qiniuFile.isFileExist(this.bucket, dir + filename, this.bucketManager)
+                const isExist = await ctx.service.qiniuFile.isFileExist(this.bucket, dir + filename)
                 if (isExist) {
                     throw new Error('同名文件已存在')
                 }
@@ -208,7 +197,7 @@ export default class FileController extends Controller {
 
         try {
             const path = ctx.params.id
-            await ctx.service.qiniuFile.delete(this.bucket, path, this.bucketManager)
+            await ctx.service.qiniuFile.delete(this.bucket, path)
             ctx.status = 200
             return true
         } catch (e) {
@@ -222,7 +211,7 @@ export default class FileController extends Controller {
     // 新建文件夹
     async createDir (ctx) {
         const dir = ctx.query.path + ctx.params.dirname + '/'
-        const { bucket, bucketManager } = this
+        const { bucket } = this
         const options = {
             prefix: dir,
             delimiter: '/',
@@ -230,12 +219,12 @@ export default class FileController extends Controller {
         }
 
         try {
-            const { items = [] } = await ctx.service.qiniuFile.listPrefix(bucket, options, bucketManager)
+            const { items = [] } = await ctx.service.qiniuFile.listPrefix(bucket, options)
             if (items.length) {
                 throw new Error('该目录已存在')
             }
 
-            const uploadToken = await this.service.qiniuFile.creatUploadToken()    
+            const uploadToken = await this.service.qiniuFile.createUploadToken()    
 
             await ctx.service.qiniuFile.put(uploadToken, dir, Buffer.from(''))
             ctx.status = 200
@@ -253,7 +242,7 @@ export default class FileController extends Controller {
     // 删除文件夹
     async destroyDir (ctx) {
         const {path} = ctx.params
-        const { bucket, bucketManager } = this
+        const { bucket } = this
         const options = {
             prefix: path,
             delimiter: '/',
@@ -261,22 +250,25 @@ export default class FileController extends Controller {
         }
 
         try {
-            const { items = [] } = await ctx.service.qiniuFile.listPrefix(bucket, options, bucketManager)
-            console.log(items)
+            const { items = [] } = await ctx.service.qiniuFile.listPrefix(bucket, options)
             // if (!items.length) {
             //     throw new Error('该目录不存在或不是文件夹')
             // }
-            if (items.length > 1 || (items.length === 1 && items[0].fsize)) {
+            if (items.length > 1) {
                 throw new Error('该目录不为空，请先删除该目录下所有文件')
             }
-            if (items.length === 1 && items[0].fsize === 0) {          
-                await ctx.service.qiniuFile.delete(this.bucket, path, this.bucketManager)
-                const item = items[0]
-                const dirArr = item.key.split('/')
-                const length = dirArr.length
-                item.name = !!dirArr[length - 1] ? dirArr[length - 1] : dirArr[length - 2]
-                ctx.status = 200
-                return item
+            if (items.length === 1) {   
+                if (items[0].fsize) {
+                    throw new Error('该目录不为空，请先删除该目录下所有文件')
+                } else {                  
+                    await ctx.service.qiniuFile.delete(this.bucket, path)
+                    const item = items[0]
+                    const dirArr = item.key.split('/')
+                    const length = dirArr.length
+                    item.name = !!dirArr[length - 1] ? dirArr[length - 1] : dirArr[length - 2]
+                    ctx.status = 200
+                    return item
+                }       
             }
         } catch (e) {
             ctx.status = 500

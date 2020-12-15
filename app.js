@@ -1,4 +1,5 @@
 const OSS = require('ali-oss')
+const qiniu = require('qiniu')
 const LocalStrategy = require('passport-local').Strategy
 class AppBootHook {
     constructor(app) {
@@ -6,16 +7,16 @@ class AppBootHook {
     }
 
     configWillLoad(app) {
-    // 此时 config 文件已经被读取并合并，但是还并未生效
-    // 这是应用层修改配置的最后时机
-    // 注意：此函数只支持同步调用
+        // 此时 config 文件已经被读取并合并，但是还并未生效
+        // 这是应用层修改配置的最后时机
+        // 注意：此函数只支持同步调用
     }
 
     async beforeStart(app) {}
 
     async didLoad() {
-    // 所有的配置已经加载完毕
-    // 可以用来加载应用自定义的文件，启动自定义的服务
+        // 所有的配置已经加载完毕
+        // 可以用来加载应用自定义的文件，启动自定义的服务
         const { app } = this
         // 挂载 strategy
         app.passport.use(new LocalStrategy({
@@ -70,28 +71,49 @@ class AppBootHook {
     }
 
     async willReady() {
-    // 所有的插件都已启动完毕，但是应用整体还未 ready
-    // 可以做一些数据初始化等操作，这些操作成功才会启动应用
+        // 所有的插件都已启动完毕，但是应用整体还未 ready
+        // 可以做一些数据初始化等操作，这些操作成功才会启动应用
     }
 
     async didReady() {
-    // 应用已经启动完毕
-        this.app.ossClient = new OSS({
-            region: 'oss-cn-hangzhou',
-            // 云账号AccessKey有所有API访问权限，建议遵循阿里云安全最佳实践，部署在服务端使用RAM子账号或STS，部署在客户端使用STS。
-            // accessKeyId: 'L---TAI4GGpjwn2daaWfD2tdZU9',
-            // accessKeySecret: '3---GBPL5eBs4sGCnpEJB8vZKlieemDdI',
-            accessKeyId: 'LTAI4GGpjwn2daaWfD2tdZU9',
-            accessKeySecret: '3GBPL5eBs4sGCnpEJB8vZKlieemDdI',
-            bucket: 'penglai-weimall',
-            // 是否使用https
-            secure: false
-        })
+        // 应用已经启动完毕
+
+        this.initQiniuOss()
+        this.initAliOss()
     }
 
     async serverDidReady() {
-    // http / https server 已启动，开始接受外部请求
-    // 此时可以从 app.server 拿到 server 的实例
+        // http / https server 已启动，开始接受外部请求
+        // 此时可以从 app.server 拿到 server 的实例
+    }
+
+    initQiniuOss () {
+        const { qiniuConfig } = this.app.config
+        const mac = new qiniu.auth.digest.Mac(qiniuConfig.accessKey, qiniuConfig.secretKey)
+        const config = new qiniu.conf.Config()
+        // @ts-ignore
+        config.zone = qiniu.zone.Zone_z2
+        const bucketManager = new qiniu.rs.BucketManager(mac, config)
+
+        this.app.qiniuOss = {
+            mac,
+            bucketManager,
+            uploadOptions: {
+                accessKey: qiniuConfig.accessKey,
+                secretKey: qiniuConfig.secretKey,
+                bucket: qiniuConfig.bucket,
+                scope: qiniuConfig.scope
+                // expires: '',
+                // origin: '',
+                // persistentNotifyUrl: ''
+            }
+        }
+    }
+
+    initAliOss () {
+        const { aliConfig } = this.app.config
+
+        this.app.aliOssClient = new OSS(aliConfig)
     }
 }
 

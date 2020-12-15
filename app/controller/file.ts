@@ -1,28 +1,20 @@
 import { Controller } from 'egg'
 import moment = require('moment')
-import OSS = require('ali-oss')
-
-const client = new OSS({
-    region: 'oss-cn-hangzhou',
-    // 云账号 AccessKey 有所有 API 访问权限，建议遵循阿里云安全最佳实践，部署在服务端使用 RAM 子账号或 STS，部署在客户端使用 STS。
-    accessKeyId: 'L---TAI4GGpjwn2daaWfD2tdZU9',
-    accessKeySecret: '3---GBPL5eBs4sGCnpEJB8vZKlieemDdI',
-    bucket: 'penglai-weimall',
-    secure: false // 是否使用 https
-})
-
-// import mime = require("mime")
-// import uuidv4 = require("uuid/v4")
 // import fs = require("fs")
 // import path = require("path")
+// import mime = require("mime")
+// import uuidv4 = require("uuid/v4")
+
 let hasDelete = false
 
 export default class FileController extends Controller {
     root: string = 'static/'
     cdn: string = 'cdn/'
+    client: any
 
     constructor(params) {
         super(params)
+        this.client = this.app.aliOssClient
     }
 
 
@@ -69,7 +61,7 @@ export default class FileController extends Controller {
             }
 
             // 当前路径下的文件夹 prefixes 和文件 objects
-            const staticFiles = await client.list({
+            const staticFiles = await this.client.list({
                 prefix,
                 delimiter: '/',
                 MaxKeys: 1000
@@ -215,7 +207,7 @@ export default class FileController extends Controller {
 
             const filename = part.filename
             try {
-                const result = await client.putStream(dir + filename, part, { headers: { 'x-oss-forbid-overwrite': true } })
+                const result = await this.client.putStream(dir + filename, part, { headers: { 'x-oss-forbid-overwrite': true } })
                 delete result.res
                 results.success.push(result)
             } catch (err) {
@@ -303,7 +295,7 @@ export default class FileController extends Controller {
         }
 
         try {
-            const { res: exist } = await client.get(dir)
+            const { res: exist } = await this.client.get(dir)
             if (exist.status === 200) {
                 throw new Error('该目录已存在')
             }
@@ -314,7 +306,7 @@ export default class FileController extends Controller {
             }
 
             try {
-                const { res: info } = await client.put(dir, Buffer.from(''))
+                const { res: info } = await this.client.put(dir, Buffer.from(''))
                 ctx.status = 200
                 return info
             } catch (err) {
@@ -354,7 +346,7 @@ export default class FileController extends Controller {
 
         try {
             const filename = ctx.params.id
-            await client.delete(filename)
+            await this.client.delete(filename)
             ctx.status = 200
             return true
         } catch (e) {
@@ -392,7 +384,7 @@ export default class FileController extends Controller {
     // 下载文件
     // public async download (url) {
     //   try {
-    //     const result = await this.app.ossClient.getStream('object-name')
+    //     const result = await this.app.aliOssClient.getStream('object-name')
     //   } catch (e) {
     //     console.log(e)
     //   }

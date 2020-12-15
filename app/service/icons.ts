@@ -12,7 +12,7 @@ import { checkIconName } from '../../lib/validate'
 export default class IconsService extends Service {
     timer: any = 0
 
-    public async getList(query) {
+    public async getList (query) {
         const { projectId = '', visible } = query
         const SQL = `
                         SELECT *
@@ -124,7 +124,7 @@ export default class IconsService extends Service {
     // </svg>
 
 
-    public async create(data) {
+    public async create (data) {
         const { mysql } = this.app
         const {
             file,
@@ -169,8 +169,8 @@ export default class IconsService extends Service {
         content = this.modifySvgsId(content)
 
         // 生成唯一哈希值，避免名字重复，如 icon-pdf-887fd
-        let hash = await this.generateHash(content)
-        hash = hash.substring(0, 5)
+        // let hash = await this.generateHash(content)
+        // hash = hash.substring(0, 5)
 
         // 解析 html
         // 将svg转成“DOM”, 然后对其中的一些属性进行操作
@@ -223,7 +223,7 @@ export default class IconsService extends Service {
         return true
     }
 
-    public async update(id, body) {
+    public async update (id, body) {
         const { mysql } = this.app
         const querySql = 'SELECT * FROM icons WHERE id = ?'
         const updateSql = 'UPDATE icons SET icon_name = ?, icon_desc = ?, content = ?, project_id = ?, namespace = ?, visible = ?, update_time = ? WHERE id = ?'
@@ -247,7 +247,7 @@ export default class IconsService extends Service {
         return res
     }
 
-    public async destroy(id) {
+    public async destroy (id) {
         const querySql = 'SELECT project_id FROM icons WHERE id = ?'
         const deleteSql = 'DELETE FROM icons WHERE id = ?'
 
@@ -258,7 +258,7 @@ export default class IconsService extends Service {
     }
 
     // 更新项目修改时间
-    private async updateProject(projectId) {
+    private async updateProject (projectId) {
         clearTimeout(this.timer)
         this.timer = setTimeout(() => {
             const SQL = 'UPDATE project set update_time = NOW() WHERE id = ?'
@@ -288,7 +288,7 @@ export default class IconsService extends Service {
      * 修改svg中的一些属性(id 和 class等), 避免不同svg之间存在属性值重复( id )的情况
      * @param svg {cheerio}
      */
-    private modifySvgsId(svg) {
+    private modifySvgsId (svg) {
         const ids = svg.matchAll(/id\s*=\s*"([^"]+)"/gi)
         for (const val of ids) {
             const newId = uuidv4().replace(/\-/g, '').replace(/\d/g, '')

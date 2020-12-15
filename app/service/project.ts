@@ -3,7 +3,7 @@ import moment = require('moment')
 import uuidv1 = require('uuid/v1')
 
 export default class PorjectService extends Service {
-    public async getList() {
+    public async getList () {
         const SQL = `
                         SELECT *,
                         DATE_FORMAT(create_time, '%Y-%m-%d %T') as create_time,
@@ -30,7 +30,7 @@ export default class PorjectService extends Service {
         return res
     }
 
-    public async create(data: ProjectData) {
+    public async create (data: ProjectData) {
         try {
             const { mysql } = this.app
             const id = uuidv1().replace(/\-/g, '')
@@ -71,7 +71,7 @@ export default class PorjectService extends Service {
         }
     }
 
-    public async update(data: ProjectData) {
+    public async update (data: ProjectData) {
         if (data.id === 'has_removed') {
             this.ctx.status = 403
             throw new Error('不可编辑')
@@ -102,10 +102,10 @@ export default class PorjectService extends Service {
             //   changedRows: 1
             // }
 
-            const res = await mysql.query(SQL, [ name, updateTime, id, fontFace])
+            const res = await mysql.query(SQL, [ name, updateTime, fontFace, id])
             if (res.affectedRows >= 1) {
                 const [ current ] = await mysql.query(selectSql)
-                delete current.project_name
+                // delete current.project_name
                 return current
             }
             return null
@@ -114,7 +114,7 @@ export default class PorjectService extends Service {
         }
     }
 
-    public async destroy(id) {
+    public async destroy (id) {
         if (id === 'has_removed') {
             this.ctx.status = 403
             throw new Error('不可删除')

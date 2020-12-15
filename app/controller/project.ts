@@ -1,7 +1,7 @@
 import { Controller } from 'egg'
 
 export default class PorjectController extends Controller {
-    public async index(ctx) {
+    public async index (ctx) {
         try {
             const res = await ctx.service.project.getList()
             ctx.status = 200
@@ -12,7 +12,7 @@ export default class PorjectController extends Controller {
         }
     }
 
-    public async create(ctx) {
+    public async create (ctx) {
         const rule = {
             name: {
                 type: 'string',
@@ -39,7 +39,7 @@ export default class PorjectController extends Controller {
         }
     }
 
-    public async update(ctx) {
+    public async update (ctx) {
         const rule = {
             name: {
                 type: 'string',
@@ -82,7 +82,7 @@ export default class PorjectController extends Controller {
         }
     }
 
-    public async destroy(ctx) {
+    public async destroy (ctx) {
         const rule = {
             id: {
                 type: 'string',
