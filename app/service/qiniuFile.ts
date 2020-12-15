@@ -2,7 +2,7 @@ import { Service } from 'egg'
 import qiniu = require('qiniu')
 
 export default class FileService extends Service {
-    public async listPrefix (bucket, options) {
+    public async listPrefix (bucket, options): Promise<{ items: any[]; commonPrefixes: string[]; marker?: string; }> {
         const { bucketManager } = this.app.qiniuOss
 
         return new Promise((resolve, reject) => {
@@ -138,7 +138,7 @@ export default class FileService extends Service {
         })
     }  
 
-    public async putStream (uploadToken, key, readableStream) {
+    public async putStream (uploadToken, key, readableStream): Promise<{ hash: string; key: string; }> {
         const { uploadOptions } = this.app.qiniuOss
         
         const formUploader = new qiniu.form_up.FormUploader(uploadOptions)

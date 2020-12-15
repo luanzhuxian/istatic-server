@@ -41,19 +41,12 @@ export default class IconsService extends Service {
     }
 
     public async index (projectId) {
-        // const sql = `
-        //                 SELECT id, 
-        //                 js as link, 
-        //                 DATE_FORMAT(create_time, '%Y-%m-%d %T') as create_time 
-        //                 FROM link  
-        //                 WHERE project_id = ? 
-        //                 ORDER BY create_time DESC LIMIT 1 OFFSET 0
-        //             `
+        const { mysql } = this.app
         const sql = `
                         SELECT id, 
                         css as fontClassUrl, 
-                        dir_key, 
                         js as symbolUrl, 
+                        dir_key, 
                         DATE_FORMAT(create_time, '%Y-%m-%d %T') as create_time 
                         FROM link  
                         WHERE project_id = ? 
@@ -63,30 +56,30 @@ export default class IconsService extends Service {
         // res: Array< RowDataPacket >
         // [
         //   RowDataPacket {
-        //     id: '7ac0b4d0c4ac11ea93872329f8a316d4',
-        //     link: 'https://mallcdn.youpenglai.com/pl-icons/7a7af940-c4ac-11ea-9387-2329f8a316d4.js',
-        //     create_time: '2020-07-13 09:59:26'
+        //      id: "370685d03e8c11ebab8b991ed7355826"
+        //      dir_key: "36a35730-3e8c-11eb-ab8b-991ed7355826"
+        //      fontClassUrl: "https://mallcdn.youpenglai.com/pl-icons/36a35730-3e8c-11eb-ab8b-991ed7355826/test.css"
+        //      symbolUrl: "https://mallcdn.youpenglai.com/pl-icons/36a35730-3e8c-11eb-ab8b-991ed7355826/test.js"
+        //      create_time: "2020-12-15 12:15:50"
         //   }
         // ]
 
-        const res = await this.app.mysql.query(sql, [ projectId ])
+        const res = await mysql.query(sql, [ projectId ])
         return res[0] || {
             id: '',
-            link: '',
+            dir_key: '',
+            fontClassUrl: '',
+            symbolUrl: '',
             create_time: ''
         }
     }
 
     /**
-   * 生成在线链接
-   */
+     * 生成在线链接
+     */
     public async create (projectId) {
-        // const SQL = `
-        //                 SELECT content, id 
-        //                 FROM icons 
-        //                 WHERE visible = 1 AND project_id = ? 
-        //                 ORDER BY update_time desc
-        //             `
+        const { mysql } = this.app
+
         const SQL = `
                         SELECT * FROM icons 
                         WHERE visible = 1 AND project_id = ? 
@@ -132,14 +125,14 @@ export default class IconsService extends Service {
         //   }
         // ]
 
-        const SVG_DATA = await this.app.mysql.query(SQL, [ projectId ])
+        // 拿到所有svg图标
+        const SVG_DATA = await mysql.query(SQL, [ projectId ])
         const SVG_CONTENT = SVG_DATA.map(item => item.content)
         // this.test1(SVG_DATA)
         // this.test2(SVG_DATA)
 
         // TODO:
         // 将拼接在一起的图标修改为精灵
-        // const spirit = SVG_DATA.map(item => item.content).join('').replace(/svg/g, 'symbol')
         const spirit = SVG_CONTENT.join('').replace(/svg/g, 'symbol')
 
 
@@ -240,9 +233,10 @@ export default class IconsService extends Service {
 
         // 将文件内容转为流
         try {
-            const project = await this.app.mysql.query('SELECT font_face from project WHERE id = ?', [ projectId ])
-
+            const project = await mysql.query('SELECT font_face from project WHERE id = ?', [ projectId ])
             const fontFace = project[0].font_face
+
+            // 生成文件存放目录
             const fileDir = uuidv1()
 
             // 生成字体图标文件
@@ -253,7 +247,7 @@ export default class IconsService extends Service {
             // 被调用时，如果从资源读取到数据，则需要开始使用 stream.push(chunk) 数据会被缓冲在可读流中，如果流的消费者没有调用 stream.read()，则数据会保留在内部队列中直到被消费。
             const svgScriptStream = new Readable({
                 autoDestroy: true,
-                read() {
+                read () {
                     // 向缓冲区推送数据
                     this.push(svgScript)
                     this.push(null)
@@ -261,6 +255,7 @@ export default class IconsService extends Service {
             })
 
 
+            // TODO:
             // 上面 跟 下面的区别
             // when you .push() to a readable stream, the chunks you push are buffered until a consumer is ready to read them.
             // To avoid buffering data altogether and only generate the data when the consumer asks for it. We can push chunks on-demand by defining a ._read function
@@ -315,22 +310,33 @@ export default class IconsService extends Service {
                 }
             })
 
-            await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.svg`, svgStream)
-            await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.ttf`, ttfStream)
-            await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.woff`, woffStream)
-            await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.woff2`, woff2Stream)
-            await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.eot`, eotStream)
+            /* ali-oss */
+            // await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.svg`, svgStream)
+            // await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.ttf`, ttfStream)
+            // await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.woff`, woffStream)
+            // await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.woff2`, woff2Stream)
+            // await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.eot`, eotStream)
 
-            // 上传至OSS并返回链接
-            const symbol2Res = await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.js`, svgScriptStream)
-            const cssRes = await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.css`, cssStream)
-            // const res = {
-            //   name: `i-static/${filename}.js`
-            // }
+            // // 上传至OSS并返回链接
+            // const symbol2Res = await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.js`, svgScriptStream)
+            // const cssRes = await this.client.putStream(`pl-icons/${fileDir}/${ fontFace }.css`, cssStream)
+            // const symbolUrl = `https://mallcdn.youpenglai.com/${symbol2Res.name}`
+            // const fontClassUrl = `https://mallcdn.youpenglai.com/${cssRes.name}`
 
-            // url: https://mallcdn.youpenglai.com/pl-icons/66e6a1f0-c032-11ea-871e-a1f8066f6847.js
-            const symbolUrl = `https://mallcdn.youpenglai.com/${symbol2Res.name}`
-            const fontClassUrl = `https://mallcdn.youpenglai.com/${cssRes.name}`
+            /* qiniu-oss */
+            const uploadToken = await this.ctx.service.qiniuFile.createUploadToken()    
+            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${ fontFace }.svg`, svgStream)    
+            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${ fontFace }.ttf`, ttfStream)    
+            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${ fontFace }.woff`, woffStream)    
+            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${ fontFace }.woff2`, woff2Stream)    
+            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${ fontFace }.eot`, eotStream)
+            const symbol2Res = await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${ fontFace }.js`, svgScriptStream)
+            const cssRes: any = await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${ fontFace }.css`, cssStream)
+
+            // 生成资源链接
+            const { publicBucketDomain } = this.app.config.qiniuConfig
+            const symbolUrl = publicBucketDomain + symbol2Res.key
+            const fontClassUrl = publicBucketDomain + cssRes.key
 
             // 存储url
             await this.saveLink(symbolUrl, fontClassUrl, SVG_DATA, projectId, fileDir)
@@ -343,19 +349,33 @@ export default class IconsService extends Service {
         }
     }
 
-    public async download (dirKey) {
+    public async download (dir) {
         const archive = archiver('zip', {
-          zlib: { level: 9 }
+            zlib: { level: 9 }
         })
         this.ctx.response.body = archive
+
         const result = await this.client.list({
-          prefix: `pl-icons/${ dirKey }`
+            prefix: `pl-icons/${ dir }`
         })
         for (const file of result.objects) {
-          console.log('download', file.url)
-          const res = await this.client.getStream(file.name)
-          await archive.append(res.stream, { name: file.name.split('/').slice(-1)[0] })
+            console.log('download', file.url)
+            const res = await this.client.getStream(file.name)
+            await archive.append(res.stream, { name: file.name.split('/').slice(-1)[0] })
         }
+        // const { bucketManager } = this.app.qiniuOss
+        // const { bucket } = this.app.config.qiniuConfig
+        // const options = {
+        //     prefix: `i-static/${ dir }/`,
+        //     delimiter: '/',
+        //     limit: 99
+        // }
+        // const { items } = await this.ctx.service.qiniuFile.listPrefix(bucket, options)
+        // for (const file of items) {
+        //     const res = await this.client.getStream(file.name)
+        //     console.log(res)
+        //     await archive.append(res.stream, { name: file.name.split('/').slice(-1)[0] })
+        // }
         archive.finalize()
         return
     }
@@ -369,6 +389,7 @@ export default class IconsService extends Service {
      * @param svgs {array} svg 精灵
      */
     public async saveLink (js, css, svgs, projectId, fileDir) {
+        const { mysql } = this.app
 
         // 根据 icon 表中当前 project 所有 svg 的 id 生成 hash
         const svgIds = svgs.map(item => item.id).join('')
@@ -379,8 +400,8 @@ export default class IconsService extends Service {
 
         try {
             // 存入 redis 哈希表
-            await this.app.redis.hset('icon-hash', `svg-pro-id-${projectId}`, hashCode)
-            const res = await this.app.mysql.query(SQL, [ id, js, css, hashCode, projectId, fileDir ])
+            await this.app.redis.hset('istatic-hash', `svg-pro-id-${projectId}`, hashCode)
+            const res = await mysql.query(SQL, [ id, js, css, hashCode, projectId, fileDir ])
             return res
         } catch (e) {
             throw e
@@ -429,27 +450,27 @@ export default class IconsService extends Service {
             try {
                 // @ts-ignore
                 for (const [ i, svg ] of svgs.entries()) {
-                const $ = cheerio.load(svg.content)
-                const $svg = $('svg')
-                $svg.attr('width', svg.width)
-                $svg.attr('height', svg.height)
-                $svg.attr('xmlns', 'http://www.w3.org/2000/svg')
-                $svg.removeAttr('t')
-                $svg.removeAttr('style')
-                // console.log(svg)
-                // const REG = /viewBox="([\d\s.]+)"/
-                // const viewBox = REG.exec(svg.content)[1] || ''
-                // if (!viewBox) continue
-                // const size = `width="${ viewBox.split(' ')[2] }" height="${ viewBox.split(' ')[3] }"`
-                // svg.content = '<?xml version="1.0" encoding="UTF-8"?>\n' + svg.content.replace(REG, `viewBox="${ viewBox }" ${ size } xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"`)
-                // const nameArr = svg.icon_name.split('-')
-                // const newName = nameArr.slice(1, nameArr.length - 1).join('-')
-                const filePath = path.join(__dirname, `../../fonts/${ svg.icon_name }.svg`)
-                files.push(filePath)
-                initCodePoints.push(svg.unicode)
-                // const updateSql = `UPDATE icons SET content = ? WHERE id = ?`
-                // await this.app.mysql.query(updateSql, [ svg.content, svg.id ])
-                fs.writeFileSync(filePath, $('body').html(), { encoding: 'utf8' })
+                    const $ = cheerio.load(svg.content)
+                    const $svg = $('svg')
+                    $svg.attr('width', svg.width)
+                    $svg.attr('height', svg.height)
+                    $svg.attr('xmlns', 'http://www.w3.org/2000/svg')
+                    $svg.removeAttr('t')
+                    $svg.removeAttr('style')
+                    // console.log(svg)
+                    // const REG = /viewBox="([\d\s.]+)"/
+                    // const viewBox = REG.exec(svg.content)[1] || ''
+                    // if (!viewBox) continue
+                    // const size = `width="${ viewBox.split(' ')[2] }" height="${ viewBox.split(' ')[3] }"`
+                    // svg.content = '<?xml version="1.0" encoding="UTF-8"?>\n' + svg.content.replace(REG, `viewBox="${ viewBox }" ${ size } xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"`)
+                    // const nameArr = svg.icon_name.split('-')
+                    // const newName = nameArr.slice(1, nameArr.length - 1).join('-')
+                    const filePath = path.join(__dirname, `../../fonts/${ svg.icon_name }.svg`)
+                    files.push(filePath)
+                    initCodePoints.push(svg.unicode)
+                    // const updateSql = `UPDATE icons SET content = ? WHERE id = ?`
+                    // await this.app.mysql.query(updateSql, [ svg.content, svg.id ])
+                    fs.writeFileSync(filePath, $('body').html(), { encoding: 'utf8' })
                 }
             } catch (e) {
                 reject(e)
@@ -471,7 +492,7 @@ export default class IconsService extends Service {
                 // 文件不写入本地
                 writeFiles: false,
                 templateOptions: {
-                // 名称前缀（不需要）
+                    // 名称前缀（不需要）
                     classPrefix: '',
                     // 选择器前缀
                     baseSelector
@@ -492,13 +513,13 @@ export default class IconsService extends Service {
 
     private delFile (files) {
         for (const url of files) {
-        fs.unlink(url, err => {
-            if (err) {
-                console.error(err)
-                return
-            }
-            console.log('已成功删除文件:', url)
-        })
+            fs.unlink(url, err => {
+                if (err) {
+                    console.error(err)
+                    return
+                }
+                console.log('已成功删除文件:', url)
+            })
         }
     }
 

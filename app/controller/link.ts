@@ -2,15 +2,6 @@ import { Controller } from 'egg'
 
 export default class LinkController extends Controller {
     public async index(ctx) {
-        const rule = {
-            projectId: {
-                type: 'string',
-                require: false,
-                max: 32,
-                min: 0
-            }
-        }
-
         // 没有 project 的时候 projectId 可能为空
         if (!ctx.query.projectId) {
             ctx.status = 200
@@ -18,6 +9,15 @@ export default class LinkController extends Controller {
                 id: '',
                 link: '',
                 create_time: ''
+            }
+        }
+
+        const rule = {
+            projectId: {
+                type: 'string',
+                require: true,
+                max: 32,
+                min: 0
             }
         }
 

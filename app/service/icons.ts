@@ -1,9 +1,9 @@
 import { Service } from 'egg'
-import fs = require("fs")
 import { join } from "path"
+import fs = require("fs")
+import crypto = require('crypto')
 import uuidv4 = require('uuid/v4')
 import cheerio = require('cheerio')
-import crypto = require('crypto')
 import moment = require('moment')
 import { checkIconName } from '../../lib/validate'
 
@@ -20,10 +20,13 @@ export default class IconsService extends Service {
                         WHERE project_id = ? AND visible = ?
                         ORDER BY update_time desc
                     `
+
         // 从 redis 哈希表读取
-        const oldHash = await this.app.redis.hget('icon-hash', `svg-pro-id-${projectId}`)
+        const oldHash = await this.app.redis.hget('istatic-hash', `svg-pro-id-${projectId}`)
         const svgs = await this.app.mysql.query(SQL, [ projectId, visible ])
-        const newHash = await this.generateHash(svgs.map(item => item.id).join(''))
+        // 根据 icon 表中当前 project 所有 svg 的 id 生成 hash
+        const svgIds = svgs.map(item => item.id).join('')
+        const newHash = await this.generateHash(svgIds)
 
         return {
             changed: svgs.length && visible === '1' ? oldHash !== newHash : false,
@@ -123,6 +126,10 @@ export default class IconsService extends Service {
     // </svg>
 
 
+    /**
+     * 上传图标
+     * file 上传的文件流，经过转为字符串，修改属性，最后生成 content
+     */
     public async create (data) {
         const { mysql } = this.app
         const {
@@ -133,6 +140,7 @@ export default class IconsService extends Service {
         } = data
         const project = await mysql.query('SELECT font_face from project WHERE id = ?', [ projectId ])
         const fontFace = project[0].font_face
+        // 暂存文件流
         const chunks: Buffer[] = []
         const filename = file.filename.split('.')[0]
         const name = `${ fontFace }-${filename}`
@@ -143,7 +151,6 @@ export default class IconsService extends Service {
             throw new Error('文件名只能是字母、数字、_ 或 -')
         }
         const iconExists = await this.iconExists(name, projectId)
-        console.log('图标是否存在：', iconExists)
         if (iconExists) {
             this.ctx.status = 422
             throw new Error('文件名重复，请修改')
@@ -153,7 +160,7 @@ export default class IconsService extends Service {
         let content = ''
         // let hash = ''
 
-        // for of 也是消费流的一种方法
+        // for...of 也是消费流的一种方法
         for await (const chunk of file) {
             chunks.push(chunk)
             chunkLen += chunk.length
@@ -177,7 +184,6 @@ export default class IconsService extends Service {
         const $svg = $('svg')
 
         // 增加 id 属性
-        // $('svg').attr('id', name)
         $svg.attr('id', name)
         const viewBox = $svg.attr('viewBox').split(' ')
         // 没有宽时从viewBox取
@@ -201,11 +207,10 @@ export default class IconsService extends Service {
 
         // 重新上传的处理
         if (id) {
-            return this.update(id, {
-                content
-            })
+            return this.update(id, { content })
         }
 
+        // 首次上传
         const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc, project_id, namespace, unicode, width, height) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?, ?, ?, ?, ?, ?)'
         const maxUnicode = await mysql.query('SELECT unicode from icons ORDER BY unicode desc LIMIT 1')
         await mysql.query(insertSql, [
@@ -228,7 +233,7 @@ export default class IconsService extends Service {
         const updateSql = 'UPDATE icons SET icon_name = ?, icon_desc = ?, content = ?, project_id = ?, namespace = ?, visible = ?, update_time = ? WHERE id = ?'
 
         const [ icon ] = await mysql.query(querySql, [ id ])
-        // body 中包含哪个字段就更新哪个，比如 body = { visible: 0 }，相当于值更新了 visible 字段
+        // body 中包含哪个字段就更新哪个，比如 body = { visible: 0 }，相当于只更新了 visible 字段
         const {
             visible = icon.visible,
             name = icon.icon_name,
@@ -247,11 +252,13 @@ export default class IconsService extends Service {
     }
 
     public async destroy (id) {
+        const { mysql } = this.app
+
         const querySql = 'SELECT project_id FROM icons WHERE id = ?'
         const deleteSql = 'DELETE FROM icons WHERE id = ?'
 
-        const [ current ] = await this.app.mysql.query(querySql, [ id ])
-        const res = await this.app.mysql.query(deleteSql, [ id ])
+        const [ current ] = await mysql.query(querySql, [ id ])
+        const res = await mysql.query(deleteSql, [ id ])
         await this.updateProject(current.project_id)
         return res
     }
