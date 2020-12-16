@@ -182,6 +182,8 @@ export default class IconsService extends Service {
 
         // 生成执行 js 文件，分配新的 buffer
         const script = this.createSvgScript(spirit)
+        // Copies the passed buffer data onto a new Buffer instance.
+        // 用于转为流
         const svgScript = Buffer.from(script)
 
 
@@ -363,6 +365,7 @@ export default class IconsService extends Service {
             const res = await this.client.getStream(file.name)
             await archive.append(res.stream, { name: file.name.split('/').slice(-1)[0] })
         }
+
         // const { bucketManager } = this.app.qiniuOss
         // const { bucket } = this.app.config.qiniuConfig
         // const options = {
@@ -376,6 +379,7 @@ export default class IconsService extends Service {
         //     console.log(res)
         //     await archive.append(res.stream, { name: file.name.split('/').slice(-1)[0] })
         // }
+
         archive.finalize()
         return
     }
