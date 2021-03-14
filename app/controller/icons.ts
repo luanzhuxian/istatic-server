@@ -2,7 +2,7 @@ import { Controller } from 'egg'
 
 export default class IconsController extends Controller {
     // 获取图标
-    public async index (ctx) {
+    public async index(ctx) {
         try {
             const res = await ctx.service.icons.getList(ctx.query)
             ctx.status = 200
@@ -14,7 +14,7 @@ export default class IconsController extends Controller {
     }
 
     // 上传图标
-    public async create (ctx) {
+    public async create(ctx) {
         const data = {
             file: null
         }
@@ -25,7 +25,7 @@ export default class IconsController extends Controller {
         //     id,
         //     projectId,
         //     namespace
-        // } 
+        // }
         const parts = ctx.multipart()
         // 每次返回一个表单的 key value，返回的是 array（非文件） 或 stream（文件）
         let part = await parts()
@@ -35,9 +35,9 @@ export default class IconsController extends Controller {
                 if (part.length) {
                     /**
                      * 不是文件流，是其它字段（非文件字段时，part 是个数组）
-                     * part[0] field, 
-                     * part[1] value, 
-                     * part[2] valueTruncated, 
+                     * part[0] field,
+                     * part[1] value,
+                     * part[2] valueTruncated,
                      * part[3] fieldnameTruncated
                      */
 
@@ -46,10 +46,10 @@ export default class IconsController extends Controller {
                     // console.log('value: ' + part[1])
                     // console.log('valueTruncated: ' + part[2])
                     // console.log('fieldnameTruncated: ' + part[3])
-                    
+
                     // @exmaple
-                    // [ 'projectId', '08d9ff203e8c11ebab8b991ed7355826', false, false]   
-                    // [ 'id', '', false, false ]   
+                    // [ 'projectId', '08d9ff203e8c11ebab8b991ed7355826', false, false]
+                    // [ 'id', '', false, false ]
 
                     const [ field, value ] = part
 
@@ -109,7 +109,7 @@ export default class IconsController extends Controller {
                     //     mime: 'image/svg+xml',
                     //     mimeType: 'image/svg+xml'
                     // }
-                      
+
                     if (!part.filename) {
                         // 不包含文件
                         ctx.status = 422
@@ -138,7 +138,7 @@ export default class IconsController extends Controller {
     }
 
     // 修改图标
-    public async update (ctx) {
+    public async update(ctx) {
         try {
             const res = await ctx.service.icons.update(ctx.params.id, ctx.request.body)
             ctx.status = 200
@@ -150,7 +150,7 @@ export default class IconsController extends Controller {
     }
 
     // 删除图标
-    public async destroy (ctx) {
+    public async destroy(ctx) {
         try {
             await ctx.service.icons.destroy(ctx.params.id)
             ctx.status = 200
@@ -161,7 +161,7 @@ export default class IconsController extends Controller {
         }
     }
 
-    async demo (ctx) {
+    async demo(ctx) {
         const res = await ctx.service.icons.demo()
         ctx.status = 200
         return res

@@ -8,7 +8,9 @@
 执行 database/init.sql：
 - windows：mysql -u username -p password -D istatic < sql文件路径
 启动 mysql
-启动 redis：在redis目录下，在命令窗口执行：redis-server.exe redis.windows.conf
+启动 redis：在redis目录下，在命令窗口执行：
+mac：/usr/local/redis-5.0.7/src，redis-server
+windows：redis-server.exe redis.windows.conf
 
 ### 本地开发环境启动
 

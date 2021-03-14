@@ -40,7 +40,7 @@ export default class IconsService extends Service {
         this.client = this.app.aliOssClient
     }
 
-    public async index (projectId) {
+    public async index(projectId) {
         const { mysql } = this.app
         const sql = `
                         SELECT id, 
@@ -77,7 +77,7 @@ export default class IconsService extends Service {
     /**
      * 生成在线链接
      */
-    public async create (projectId) {
+    public async create(projectId) {
         const { mysql } = this.app
 
         const SQL = `
@@ -133,6 +133,7 @@ export default class IconsService extends Service {
 
         // TODO:
         // 将拼接在一起的图标修改为精灵
+        // symbol 不渲染，精灵js插入文档
         const spirit = SVG_CONTENT.join('').replace(/svg/g, 'symbol')
 
 
@@ -247,9 +248,11 @@ export default class IconsService extends Service {
             // Readable - 可读取数据的流（例如 fs.createReadStream()）
             // stream.read 是对 readable._read() 方法的实现，在该方法中手动添加数据到 Readable 对象的读缓冲
             // 被调用时，如果从资源读取到数据，则需要开始使用 stream.push(chunk) 数据会被缓冲在可读流中，如果流的消费者没有调用 stream.read()，则数据会保留在内部队列中直到被消费。
+
+            // svg buffer转流
             const svgScriptStream = new Readable({
                 autoDestroy: true,
-                read () {
+                read() {
                     // 向缓冲区推送数据
                     this.push(svgScript)
                     this.push(null)
@@ -269,44 +272,47 @@ export default class IconsService extends Service {
             // console.log(2222222222222222, rs)
             // console.log(3333333333333333, ds)
 
+            // 图标 buffer 转流
             const svgStream = new Readable({
                 autoDestroy: true,
-                read () {
-                  this.push(RES.svg)
-                  this.push(null)
+                read() {
+                    this.push(RES.svg)
+                    this.push(null)
                 }
             })
             const ttfStream = new Readable({
                 autoDestroy: true,
-                read () {
+                read() {
                     this.push(RES.ttf)
                     this.push(null)
                 }
             })
             const woffStream = new Readable({
                 autoDestroy: true,
-                read () {
+                read() {
                     this.push(RES.woff)
                     this.push(null)
                 }
             })
             const woff2Stream = new Readable({
                 autoDestroy: true,
-                read () {
+                read() {
                     this.push(RES.woff2)
                     this.push(null)
                 }
             })
             const eotStream = new Readable({
                 autoDestroy: true,
-                read () {
+                read() {
                     this.push(RES.eot)
                     this.push(null)
                 }
             })
+
+            // 最终生成的 css 流
             const cssStream = new Readable({
                 autoDestroy: true,
-                read () {
+                read() {
                     this.push(RES.generateCss())
                     this.push(null)
                 }
@@ -326,14 +332,14 @@ export default class IconsService extends Service {
             // const fontClassUrl = `https://mallcdn.youpenglai.com/${cssRes.name}`
 
             /* qiniu-oss */
-            const uploadToken = await this.ctx.service.qiniuFile.createUploadToken()    
-            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${ fontFace }.svg`, svgStream)    
-            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${ fontFace }.ttf`, ttfStream)    
-            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${ fontFace }.woff`, woffStream)    
-            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${ fontFace }.woff2`, woff2Stream)    
-            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${ fontFace }.eot`, eotStream)
-            const symbol2Res = await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${ fontFace }.js`, svgScriptStream)
-            const cssRes: any = await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${ fontFace }.css`, cssStream)
+            const uploadToken = await this.ctx.service.qiniuFile.createUploadToken()
+            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${fontFace}.svg`, svgStream)
+            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${fontFace}.ttf`, ttfStream)
+            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${fontFace}.woff`, woffStream)
+            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${fontFace}.woff2`, woff2Stream)
+            await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${fontFace}.eot`, eotStream)
+            const symbol2Res = await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${fontFace}.js`, svgScriptStream)
+            const cssRes: any = await this.ctx.service.qiniuFile.putStream(uploadToken, `i-static/${fileDir}/${fontFace}.css`, cssStream)
 
             // 生成资源链接
             const { publicBucketDomain } = this.app.config.qiniuConfig
@@ -351,14 +357,14 @@ export default class IconsService extends Service {
         }
     }
 
-    public async download (dir) {
+    public async download(dir) {
         const archive = archiver('zip', {
             zlib: { level: 9 }
         })
         this.ctx.response.body = archive
 
         const result = await this.client.list({
-            prefix: `pl-icons/${ dir }`
+            prefix: `pl-icons/${dir}`
         })
         for (const file of result.objects) {
             console.log('download', file.url)
@@ -392,10 +398,10 @@ export default class IconsService extends Service {
      * @param fileDir {string} 文件存放目录
      * @param svgs {array} svg 精灵
      */
-    public async saveLink (js, css, svgs, projectId, fileDir) {
+    public async saveLink(js, css, svgs, projectId, fileDir) {
         const { mysql } = this.app
 
-        // 根据 icon 表中当前 project 所有 svg 的 id 生成 hash
+        // 根据 icon 表中当前 project 所有 svg 的 id 生成 hash，判断 link 是否更改
         const svgIds = svgs.map(item => item.id).join('')
         const hashCode = await this.generateHash(svgIds)
 
@@ -412,7 +418,7 @@ export default class IconsService extends Service {
         }
     }
 
-    private async generateHash (str): Promise<string> {
+    private async generateHash(str): Promise<string> {
     // hash 实现了 Readable 接口，监听 readable 事件，当可读流中有数据可读取时，就会触发 'readable' 事件。 在写入 write 新的数据流，当到达流数据的尽头时， 'readable' 事件也会触发，但是在 'end' 事件之前触发。
     // 'readable' 事件表明流有新的动态：要么有新的数据，要么到达流的尽头。 对于前者，stream.read() 会返回可用的数据。 对于后者，stream.read() 会返回 null。
 
@@ -442,17 +448,19 @@ export default class IconsService extends Service {
         })
     }
 
-    // TODO:
-    private createSvgScript (spirit) {
+    // TODO: 拼接js精灵，之后字符串 转 buffer 转 stream 存到云上为 js 文件，在项目中引入后执行该拼接的脚本，会在 body 内插入 <svg> + spirit + </svg> 的内容。
+    private createSvgScript(spirit) {
         return '!function(t){var h,v=`<svg>' + spirit + '</svg>`,l=(h=document.getElementsByTagName("script"))[h.length-1].getAttribute("data-injectcss");if(l&&!t.__iconfont__svg__cssinject__){t.__iconfont__svg__cssinject__=!0;try{document.write("<style>.svgfont {display: inline-block;width: 1em;height: 1em;fill: currentColor;vertical-align: -0.1em;font-size:16px;}</style>")}catch(h){console&&console.log(h)}}!function(h){if(document.addEventListener)if(~["complete","loaded","interactive"].indexOf(document.readyState))setTimeout(h,0);else{var l=function(){document.removeEventListener("DOMContentLoaded",l,!1),h()};document.addEventListener("DOMContentLoaded",l,!1)}else document.attachEvent&&(a=h,c=t.document,z=!1,(m=function(){try{c.documentElement.doScroll("left")}catch(h){return void setTimeout(m,50)}v()})(),c.onreadystatechange=function(){"complete"==c.readyState&&(c.onreadystatechange=null,v())});function v(){z||(z=!0,a())}var a,c,z,m}(function(){var h,l;(h=document.createElement("div")).innerHTML=v,v=null,(l=h.getElementsByTagName("svg")[0])&&(l.setAttribute("aria-hidden","true"),l.style.position="absolute",l.style.width=0,l.style.height=0,l.style.overflow="hidden",function(h,l){l.firstChild?function(h,l){l.parentNode.insertBefore(h,l)}(h,l.firstChild):l.appendChild(h)}(l,document.body))})}(window);'
     }
-        
-    private svg2font (svgs: any[], fontFace: string) {
+
+    // svg 转 字体图标
+    private svg2font(svgs: any[], fontFace: string) {
         return new Promise(async (resolve, reject) => {
             const files: any[] = []
             const initCodePoints: any[] = []
             try {
                 // @ts-ignore
+                // icon.ts create 删除的属性，再重新加上宽高
                 for (const [ i, svg ] of svgs.entries()) {
                     const $ = cheerio.load(svg.content)
                     const $svg = $('svg')
@@ -469,7 +477,9 @@ export default class IconsService extends Service {
                     // svg.content = '<?xml version="1.0" encoding="UTF-8"?>\n' + svg.content.replace(REG, `viewBox="${ viewBox }" ${ size } xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"`)
                     // const nameArr = svg.icon_name.split('-')
                     // const newName = nameArr.slice(1, nameArr.length - 1).join('-')
-                    const filePath = path.join(__dirname, `../../fonts/${ svg.icon_name }.svg`)
+
+                    // 文件先存在本地 fonts 目录
+                    const filePath = path.join(__dirname, `../../fonts/${svg.icon_name}.svg`)
                     files.push(filePath)
                     initCodePoints.push(svg.unicode)
                     // const updateSql = `UPDATE icons SET content = ? WHERE id = ?`
@@ -480,7 +490,8 @@ export default class IconsService extends Service {
                 reject(e)
             }
             const fontName = fontFace || 'yaji'
-            const baseSelector = `.${ fontName }-icon`
+            // 模版引擎 /Users/666/Desktop/coding/project/istatic-server/lib/webfonts-generator/templates/css.hbs
+            const baseSelector = `.${fontName}-icon`
             console.log(files)
             console.log(initCodePoints)
             console.log(fontName)
@@ -515,7 +526,7 @@ export default class IconsService extends Service {
         })
     }
 
-    private delFile (files) {
+    private delFile(files) {
         for (const url of files) {
             fs.unlink(url, err => {
                 if (err) {
@@ -528,7 +539,7 @@ export default class IconsService extends Service {
     }
 
 
-    public test1 (svgs) {
+    public test1(svgs) {
         const svgIds = svgs.map(item => item.id).join('')
 
         const hash = crypto.createHash('sha256')

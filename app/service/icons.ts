@@ -1,6 +1,6 @@
 import { Service } from 'egg'
-import { join } from "path"
-import fs = require("fs")
+import { join } from 'path'
+import fs = require('fs')
 import crypto = require('crypto')
 import uuidv4 = require('uuid/v4')
 import cheerio = require('cheerio')
@@ -12,7 +12,7 @@ import { checkIconName } from '../../lib/validate'
 export default class IconsService extends Service {
     timer: any = 0
 
-    public async getList (query) {
+    public async getList(query) {
         const { projectId = '', visible } = query
         const SQL = `
                         SELECT *
@@ -130,7 +130,7 @@ export default class IconsService extends Service {
      * 上传图标
      * file 上传的文件流，经过转为字符串，修改属性，最后生成 content
      */
-    public async create (data) {
+    public async create(data) {
         const { mysql } = this.app
         const {
             file,
@@ -139,11 +139,12 @@ export default class IconsService extends Service {
             namespace
         } = data
         const project = await mysql.query('SELECT font_face from project WHERE id = ?', [ projectId ])
+        // 自定义fontface
         const fontFace = project[0].font_face
         // 暂存文件流
         const chunks: Buffer[] = []
         const filename = file.filename.split('.')[0]
-        const name = `${ fontFace }-${filename}`
+        const name = `${fontFace}-${filename}`
 
         // 图标上传时不再默认添加hash，改为校验图标名称
         if (!checkIconName(filename)) {
@@ -184,7 +185,9 @@ export default class IconsService extends Service {
         const $svg = $('svg')
 
         // 增加 id 属性
+        // <symbol viewBox="0 0 20 20" id="icon-listIcon-8d886">
         $svg.attr('id', name)
+        // 获取画布宽高
         const viewBox = $svg.attr('viewBox').split(' ')
         // 没有宽时从viewBox取
         if (!$svg.attr('width')) $svg.attr('width', viewBox[2])
@@ -202,7 +205,7 @@ export default class IconsService extends Service {
         $svg.removeAttr('xmlns')
         $svg.removeAttr('t')
         $svg.removeAttr('style')
-        // TODO:
+        // TODO: 替换为经过上述操作后新的标签
         content = $('body').html()
 
         // 重新上传的处理
@@ -210,7 +213,7 @@ export default class IconsService extends Service {
             return this.update(id, { content })
         }
 
-        // 首次上传
+        // 首次上传，此时 unicode 是十进制
         const insertSql = 'INSERT INTO icons (id, content, icon_name, icon_desc, project_id, namespace, unicode, width, height) VALUES (REPLACE(UUID(), "-", ""), ?, ?, ?, ?, ?, ?, ?, ?)'
         const maxUnicode = await mysql.query('SELECT unicode from icons ORDER BY unicode desc LIMIT 1')
         await mysql.query(insertSql, [
@@ -219,6 +222,7 @@ export default class IconsService extends Service {
             filename,
             projectId,
             namespace,
+            // unicode 递增插入
             maxUnicode && maxUnicode.length ? ++maxUnicode[0].unicode : 61697,
             width,
             height
@@ -227,7 +231,7 @@ export default class IconsService extends Service {
         return true
     }
 
-    public async update (id, body) {
+    public async update(id, body) {
         const { mysql } = this.app
         const querySql = 'SELECT * FROM icons WHERE id = ?'
         const updateSql = 'UPDATE icons SET icon_name = ?, icon_desc = ?, content = ?, project_id = ?, namespace = ?, visible = ?, update_time = ? WHERE id = ?'
@@ -251,7 +255,7 @@ export default class IconsService extends Service {
         return res
     }
 
-    public async destroy (id) {
+    public async destroy(id) {
         const { mysql } = this.app
 
         const querySql = 'SELECT project_id FROM icons WHERE id = ?'
@@ -264,7 +268,7 @@ export default class IconsService extends Service {
     }
 
     // 更新项目修改时间
-    private async updateProject (projectId) {
+    private async updateProject(projectId) {
         clearTimeout(this.timer)
         this.timer = setTimeout(() => {
             const SQL = 'UPDATE project set update_time = NOW() WHERE id = ?'
@@ -292,9 +296,10 @@ export default class IconsService extends Service {
     // TODO:
     /**
      * 修改svg中的一些属性(id 和 class等), 避免不同svg之间存在属性值重复( id )的情况
+     * 避免 id class 重复
      * @param svg {cheerio}
      */
-    private modifySvgsId (svg) {
+    private modifySvgsId(svg) {
         const ids = svg.matchAll(/id\s*=\s*"([^"]+)"/gi)
         for (const val of ids) {
             const newId = uuidv4().replace(/\-/g, '').replace(/\d/g, '')
@@ -312,12 +317,12 @@ export default class IconsService extends Service {
         return svg
     }
 
-    private async iconExists (iconName: string, project_id: string): Promise<boolean> {
+    private async iconExists(iconName: string, project_id: string): Promise<boolean> {
         const list = await this.app.mysql.query('SELECT * FROM icons  WHERE icon_name = ? AND project_id = ?', [ iconName, project_id ])
         return Boolean(list && list.length)
     }
 
-    public async demo () {
+    public async demo() {
         // const svgs = await this.app.mysql.query('SELECT id,content from icons WHERE project_id="92ab0da0f0d711ea9c368dc4eae83408"')
         // const sq1 = 'UPDATE icons SET width = ? WHERE project_id = "a9c63dd044f111eabb107986812f97fb" AND icon_name = ?'
         // const sq2 = 'UPDATE icons SET height = ? WHERE project_id = "a9c63dd044f111eabb107986812f97fb" AND icon_name = ?'
@@ -327,11 +332,11 @@ export default class IconsService extends Service {
         const $ = cheerio.load(svgSymbol)
         const symbols = $('symbol')
         for (let i = 0; i < symbols.length; i++) {
-          const c = $(symbols[i])
-          // const $svg = $('<svg></svg>')
-          // const attrs = c.attr()
-          console.log(c.removeAttr('viewBox'))
-          // for (const at of Object.keys(attrs)) {
+            const c = $(symbols[i])
+            // const $svg = $('<svg></svg>')
+            // const attrs = c.attr()
+            console.log(c.removeAttr('viewBox'))
+            // for (const at of Object.keys(attrs)) {
             // const viewBox = c.attr('viewBox').split(' ')
             // if (!c.attr('width')) {
             //   c.attr('width', viewBox[2])
@@ -343,13 +348,13 @@ export default class IconsService extends Service {
             //   continue
             // }
             // $svg.attr(at, attrs[at])
-          // }
-          // console.log(c.attr('width'), c.attr('height'), c.attr('id'))
-          // await this.app.mysql.query(sq1, [ c.attr('width'), c.attr('id') ])
-          // await this.app.mysql.query(sq2, [ c.attr('height'), c.attr('id') ])
-          // await this.app.mysql.query(sq3, [ $svg.html(c.html()).toString(), c.attr('id') ])
-          // console.log(c.attr().width)
-          // console.log($svg.html(c.html()).toString())
+            // }
+            // console.log(c.attr('width'), c.attr('height'), c.attr('id'))
+            // await this.app.mysql.query(sq1, [ c.attr('width'), c.attr('id') ])
+            // await this.app.mysql.query(sq2, [ c.attr('height'), c.attr('id') ])
+            // await this.app.mysql.query(sq3, [ $svg.html(c.html()).toString(), c.attr('id') ])
+            // console.log(c.attr().width)
+            // console.log($svg.html(c.html()).toString())
         }
         // for (const sym of $('symbol')) {
         //   console.log(sym.html())

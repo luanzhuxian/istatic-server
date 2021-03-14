@@ -65,14 +65,14 @@ export default class LinkController extends Controller {
         }
     }
 
-    public async download (ctx) {
+    public async download(ctx) {
         try {
-          await ctx.service.link.download(ctx.request.body.dirKey)
-          ctx.status = 200
-          return
+            await ctx.service.link.download(ctx.request.body.dirKey)
+            ctx.status = 200
+            return
         } catch (e) {
-          ctx.status = 500
-          throw e
+            ctx.status = 500
+            throw e
         }
     }
 }

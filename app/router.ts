@@ -8,7 +8,7 @@ export default (app: Application) => {
     router.resources('file', '/api/file', controller.qiniuFile)
     router.post('/api/create/dir/:dirname', controller.qiniuFile.createDir)
     router.delete('/api/destroy/dir/:path', controller.qiniuFile.destroyDir)
-    
+
     router.resources('user', '/api/user', controller.user)
 
     // 生成指定的鉴权中间件
@@ -24,7 +24,7 @@ export default (app: Application) => {
     // 下载图标
     router.post('/api/link/download', controller.link.download)
     // router.resources('download_file', '/api/file/download', controller.download)
-    
+
     // 操作icon的demo
     router.post('/api/icons/demo', controller.icons.demo)
 

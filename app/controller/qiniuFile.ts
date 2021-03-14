@@ -8,8 +8,8 @@ import moment = require('moment')
 let hasDelete = false
 
 export default class FileController extends Controller {
-    root: string = 'static/'
-    cdn: string = 'cdn/'
+    root = 'static/'
+    cdn = 'cdn/'
     bucket: string
     publicBucketDomain: string
     marker = ''
@@ -19,22 +19,22 @@ export default class FileController extends Controller {
         this.init()
     }
 
-    public init () {
+    public init() {
         const { qiniuConfig } = this.app.config
         this.bucket = qiniuConfig.bucket
         this.publicBucketDomain = qiniuConfig.publicBucketDomain
 
         // const publicDownloadUrl = bucketManager.publicDownloadUrl(publicBucketDomain, 'so4zbehsrt8v550bczbv')
-    } 
+    }
 
     /**
      * 获取文件列表
      * 文件默认目录：static
      * @param ctx
      */
-    public async index (ctx) {
+    public async index(ctx) {
         try {
-            let prefix = ctx.request.query.prefix
+            const prefix = ctx.request.query.prefix
             const { bucket, publicBucketDomain } = this
             const options = {
                 prefix,
@@ -51,7 +51,7 @@ export default class FileController extends Controller {
             commonPrefixes = commonPrefixes.map(item => {
                 return item.replace(prefix, '')
             })
-    
+
             if (items) {
                 items = items.filter(item => item.fsize).map(item => {
                     delete item.etag
@@ -78,7 +78,7 @@ export default class FileController extends Controller {
     }
 
     // 上传文件
-    public async create (ctx) {
+    public async create(ctx) {
         interface UploadResults {
             success: any[],
             failed: any[]
@@ -92,7 +92,7 @@ export default class FileController extends Controller {
         const parts = ctx.multipart()
         // `static/${prefix}`
         const dir = ctx.request.query.dir
-        const uploadToken = await this.service.qiniuFile.createUploadToken()    
+        const uploadToken = await this.service.qiniuFile.createUploadToken()
 
         // part:
         // FileStream {
@@ -178,7 +178,7 @@ export default class FileController extends Controller {
     }
 
     // 删除文件
-    public async destroy (ctx) {
+    public async destroy(ctx) {
         if (hasDelete) {
             ctx.status = 403
             throw new Error('删除太频繁了')
@@ -201,7 +201,7 @@ export default class FileController extends Controller {
     }
 
     // 新建文件夹
-    async createDir (ctx) {
+    async createDir(ctx) {
         const dir = ctx.query.path + ctx.params.dirname + '/'
         const { bucket } = this
         const options = {
@@ -216,7 +216,7 @@ export default class FileController extends Controller {
                 throw new Error('该目录已存在')
             }
 
-            const uploadToken = await this.service.qiniuFile.createUploadToken()    
+            const uploadToken = await this.service.qiniuFile.createUploadToken()
 
             await ctx.service.qiniuFile.put(uploadToken, dir, Buffer.from(''))
             ctx.status = 200
@@ -232,8 +232,8 @@ export default class FileController extends Controller {
     }
 
     // 删除文件夹
-    async destroyDir (ctx) {
-        const {path} = ctx.params
+    async destroyDir(ctx) {
+        const { path } = ctx.params
         const { bucket } = this
         const options = {
             prefix: path,
@@ -249,18 +249,18 @@ export default class FileController extends Controller {
             if (items.length > 1) {
                 throw new Error('该目录不为空，请先删除该目录下所有文件')
             }
-            if (items.length === 1) {   
+            if (items.length === 1) {
                 if (items[0].fsize) {
                     throw new Error('该目录不为空，请先删除该目录下所有文件')
-                } else {                  
+                } else {
                     await ctx.service.qiniuFile.delete(this.bucket, path)
                     const item = items[0]
                     const dirArr = item.key.split('/')
                     const length = dirArr.length
-                    item.name = !!dirArr[length - 1] ? dirArr[length - 1] : dirArr[length - 2]
+                    item.name = dirArr[length - 1] ? dirArr[length - 1] : dirArr[length - 2]
                     ctx.status = 200
                     return item
-                }       
+                }
             }
         } catch (e) {
             ctx.status = 500

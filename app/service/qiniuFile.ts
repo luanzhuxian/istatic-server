@@ -2,7 +2,7 @@ import { Service } from 'egg'
 import qiniu = require('qiniu')
 
 export default class FileService extends Service {
-    public async listPrefix (bucket, options): Promise<{ items: any[]; commonPrefixes: string[]; marker?: string; }> {
+    public async listPrefix(bucket, options): Promise<{ items: any[]; commonPrefixes: string[]; marker?: string; }> {
         const { bucketManager } = this.app.qiniuOss
 
         return new Promise((resolve, reject) => {
@@ -42,9 +42,9 @@ export default class FileService extends Service {
                 throw e
             }
         })
-    }   
+    }
 
-    public async stat (bucket, key) {
+    public async stat(bucket, key) {
         const { bucketManager } = this.app.qiniuOss
 
         return new Promise((resolve, reject) => {
@@ -72,9 +72,9 @@ export default class FileService extends Service {
                 throw e
             }
         })
-    }   
+    }
 
-    public async isFileExist (bucket, key) {
+    public async isFileExist(bucket, key) {
         return new Promise(async (resolve, reject) => {
             try {
                 await this.stat(bucket, key)
@@ -86,40 +86,40 @@ export default class FileService extends Service {
                 reject(e)
             }
         })
-    } 
+    }
 
     /**
      * 产生七牛的token
      */
-    public async createUploadToken () {
+    public async createUploadToken() {
         const { qiniuConfig } = this.app.config
         const { mac } = this.app.qiniuOss
 
         try {
             const putPolicy = new qiniu.rs.PutPolicy({
                 scope: qiniuConfig.scope,
-                expires: 7200    // 在不指定上传凭证的有效时间情况下，默认有效期为1个小时
+                expires: 7200 // 在不指定上传凭证的有效时间情况下，默认有效期为1个小时
             })
             const uploadToken = await putPolicy.uploadToken(mac)
             if (!uploadToken) {
                 throw new Error('token认证失败')
             }
-            return uploadToken 
+            return uploadToken
         } catch (e) {
             throw e
         }
     }
 
-    public async put (uploadToken, key, buffer) {
+    public async put(uploadToken, key, buffer) {
         const { uploadOptions } = this.app.qiniuOss
-        
+
         const formUploader = new qiniu.form_up.FormUploader(uploadOptions)
-        const putExtra = new qiniu.form_up.PutExtra()     
+        const putExtra = new qiniu.form_up.PutExtra()
 
         return new Promise((resolve, reject) => {
             try {
                 formUploader.put(uploadToken, key, buffer, putExtra, (err,
-                respBody, respInfo) => {
+                    respBody, respInfo) => {
                     if (err) {
                         reject(err)
                     }
@@ -136,18 +136,18 @@ export default class FileService extends Service {
                 throw e
             }
         })
-    }  
+    }
 
-    public async putStream (uploadToken, key, readableStream): Promise<{ hash: string; key: string; }> {
+    public async putStream(uploadToken, key, readableStream): Promise<{ hash: string; key: string; }> {
         const { uploadOptions } = this.app.qiniuOss
-        
+
         const formUploader = new qiniu.form_up.FormUploader(uploadOptions)
-        const putExtra = new qiniu.form_up.PutExtra()     
+        const putExtra = new qiniu.form_up.PutExtra()
 
         return new Promise((resolve, reject) => {
             try {
                 formUploader.putStream(uploadToken, key, readableStream, putExtra, (err,
-                respBody, respInfo) => {
+                    respBody, respInfo) => {
                     if (err) {
                         reject(err)
                     }
@@ -166,7 +166,7 @@ export default class FileService extends Service {
         })
     }
 
-    public async delete (bucket, key) {
+    public async delete(bucket, key) {
         const { bucketManager } = this.app.qiniuOss
 
         return new Promise((resolve, reject) => {
@@ -187,5 +187,5 @@ export default class FileService extends Service {
                 throw e
             }
         })
-    }  
+    }
 }

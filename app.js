@@ -21,7 +21,7 @@ class AppBootHook {
         // 挂载 strategy
         app.passport.use(new LocalStrategy({
             // 将请求信息传递到 callback 界面
-            passReqToCallback: true 
+            passReqToCallback: true
         }, (req, username, password, done) => {
             console.log(username, password)
             // format user
@@ -87,7 +87,7 @@ class AppBootHook {
         // 此时可以从 app.server 拿到 server 的实例
     }
 
-    initQiniuOss () {
+    initQiniuOss() {
         const { qiniuConfig } = this.app.config
         const mac = new qiniu.auth.digest.Mac(qiniuConfig.accessKey, qiniuConfig.secretKey)
         const config = new qiniu.conf.Config()
@@ -110,7 +110,7 @@ class AppBootHook {
         }
     }
 
-    initAliOss () {
+    initAliOss() {
         const { aliConfig } = this.app.config
 
         this.app.aliOssClient = new OSS(aliConfig)
