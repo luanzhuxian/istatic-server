@@ -1,7 +1,7 @@
 import { Service } from 'egg'
 
 export default class ConvertService extends Service {
-    public async index () {
+    public async index() {
         const SQL = `
             SELECT *,
             image_name as name,
@@ -18,7 +18,7 @@ export default class ConvertService extends Service {
         }
     }
 
-    public async create (file, encoding = 'base64') {
+    public async create(file, encoding = 'base64') {
         try {
             const { filename, mime } = file
             const selectSQL = 'SELECT * FROM images WHERE image_name = ?'
@@ -84,7 +84,7 @@ export default class ConvertService extends Service {
         }
     }
 
-    public async delete (id) {
+    public async delete(id) {
         const SQL = 'DELETE FROM images WHERE id = ?'
 
         try {
@@ -98,7 +98,7 @@ export default class ConvertService extends Service {
         }
     }
 
-    public async find (id) {
+    public async find(id) {
         const SQL = `
             SELECT *,
             image_name as name,

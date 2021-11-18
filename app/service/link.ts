@@ -16,7 +16,7 @@ import archiver = require('archiver')
 import webfontsGenerator = require('../../lib/webfonts-generator/src')
 
 
-// Readable – 可读操作
+// // Readable – 可读操作
 // function bufferToReadStream(buffer) {
 //     const stream = new Readable()
 //     stream.push(buffer)
