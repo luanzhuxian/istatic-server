@@ -38,7 +38,7 @@
     "html-minifier": "^4.0.0",
     "mime": "^2.4.4",
     "mkdirp": "^1.0.4",
-    "moment": "^2.24.0",
+    "moment": "^2.29.4",
     "passport-local": "^1.0.0",
     "pinyin": "^2.9.0",
     "q": "^1.5.1",
