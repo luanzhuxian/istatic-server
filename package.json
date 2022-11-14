@@ -24,7 +24,7 @@
   "dependencies": {
     "ali-oss": "^6.4.0",
     "archiver": "^5.0.2",
-    "axios": "^0.19.0",
+    "axios": "^0.21.2",
     "cheerio": "^1.0.0-rc.3",
     "egg": "^2.26.0",
     "egg-mysql": "^3.0.0",
